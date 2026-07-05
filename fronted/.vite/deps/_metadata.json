@@ -1,0 +1,100 @@
+{
+  "hash": "f0bf1520",
+  "configHash": "06f4e200",
+  "lockfileHash": "9371e30c",
+  "browserHash": "942399a5",
+  "optimized": {
+    "lucide-react": {
+      "src": "../../node_modules/lucide-react/dist/esm/lucide-react.js",
+      "file": "lucide-react.js",
+      "fileHash": "55a021f6",
+      "needsInterop": false
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "0bf7f57d",
+      "needsInterop": true
+    },
+    "react-markdown": {
+      "src": "../../node_modules/react-markdown/index.js",
+      "file": "react-markdown.js",
+      "fileHash": "1d3d70af",
+      "needsInterop": false
+    },
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "7d56413f",
+      "needsInterop": true
+    },
+    "react/jsx-dev-runtime": {
+      "src": "../../node_modules/react/jsx-dev-runtime.js",
+      "file": "react_jsx-dev-runtime.js",
+      "fileHash": "b2d468c4",
+      "needsInterop": true
+    },
+    "rehype-highlight": {
+      "src": "../../node_modules/rehype-highlight/index.js",
+      "file": "rehype-highlight.js",
+      "fileHash": "de18aae7",
+      "needsInterop": false
+    },
+    "rehype-katex": {
+      "src": "../../node_modules/rehype-katex/index.js",
+      "file": "rehype-katex.js",
+      "fileHash": "8dfbec2b",
+      "needsInterop": false
+    },
+    "remark-gfm": {
+      "src": "../../node_modules/remark-gfm/index.js",
+      "file": "remark-gfm.js",
+      "fileHash": "e622d837",
+      "needsInterop": false
+    },
+    "remark-math": {
+      "src": "../../node_modules/remark-math/index.js",
+      "file": "remark-math.js",
+      "fileHash": "627a7942",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "blank-line-BzaHpowT": {
+      "file": "blank-line-BzaHpowT.js",
+      "isDynamicEntry": false
+    },
+    "dev-B_7yRQBx": {
+      "file": "dev-B_7yRQBx.js",
+      "isDynamicEntry": false
+    },
+    "development-CYHPwC8O": {
+      "file": "development-CYHPwC8O.js",
+      "isDynamicEntry": false
+    },
+    "lib-Bt5eEyiu": {
+      "file": "lib-Bt5eEyiu.js",
+      "isDynamicEntry": false
+    },
+    "lib-Cg_oPLdj": {
+      "file": "lib-Cg_oPLdj.js",
+      "isDynamicEntry": false
+    },
+    "lib-LH9Xd56O": {
+      "file": "lib-LH9Xd56O.js",
+      "isDynamicEntry": false
+    },
+    "longest-streak-B5A-0zLa": {
+      "file": "longest-streak-B5A-0zLa.js",
+      "isDynamicEntry": false
+    },
+    "rolldown-runtime-B-1-B7_t": {
+      "file": "rolldown-runtime-B-1-B7_t.js",
+      "isDynamicEntry": false
+    },
+    "space-separated-tokens-CE6IlOdV": {
+      "file": "space-separated-tokens-CE6IlOdV.js",
+      "isDynamicEntry": false
+    }
+  }
+}
