@@ -2,43 +2,83 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
+    <!-- 继承 Spring Boot 父 POM，统一管理所有 Spring Boot 相关依赖版本 -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.5.16</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <relativePath/>
     </parent>
+
     <groupId>com.caobolun</groupId>
     <artifactId>rag</artifactId>
     <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
     <name>rag</name>
-    <description>rag</description>
-    <url/>
-    <licenses>
-        <license/>
-    </licenses>
-    <developers>
-        <developer/>
-    </developers>
-    <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
-    </scm>
+    <description>RAG项目父模块 —— 统一定义子模块依赖版本，子模块按需引入</description>
+
+    <!-- 子模块列表，后续新增模块在此注册 -->
+    <modules>
+        <module>business</module>
+    </modules>
+
     <properties>
         <java.version>17</java.version>
-    </properties>
-    <dependencies>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
-        </dependency>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
+        <!-- ===== 第三方依赖版本（非 Spring Boot 管理的） ===== -->
+        <okhttp.version>4.12.0</okhttp.version>
+        <gson.version>2.11.0</gson.version>
+    </properties>
+
+    <!--
+        dependencyManagement：只定义版本，不实际引入依赖。
+        子模块在 <dependencies> 中声明时无需写版本号，由这里统一控制。
+        Spring Boot 管理的依赖（starter、Jackson、Lombok 等）无需在此重复声明，
+        版本已由 spring-boot-starter-parent 锁定。
+    -->
+    <!--
+        dependencyManagement：只管理 Spring Boot 未涵盖的第三方依赖版本。
+        Spring Boot 自己的 starter（web、test、webflux 等）版本已由
+        spring-boot-starter-parent 锁定，切勿在此重复声明（不带 version 会覆盖继承版本）。
+    -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- ====== HTTP 客户端（Ollama SSE 通信） ====== -->
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>okhttp</artifactId>
+                <version>${okhttp.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>okhttp-sse</artifactId>
+                <version>${okhttp.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>logging-interceptor</artifactId>
+                <version>${okhttp.version}</version>
+            </dependency>
+
+            <!-- ====== JSON 解析 ====== -->
+            <dependency>
+                <groupId>com.google.code.gson</groupId>
+                <artifactId>gson</artifactId>
+                <version>${gson.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <!-- 所有子模块共享的公共依赖（会实际引入） -->
+    <dependencies>
+        <!-- Lombok：简化 POJO 编写，所有子模块通用 -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 
@@ -47,6 +87,14 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
             </plugin>
         </plugins>
     </build>
