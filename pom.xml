@@ -22,6 +22,7 @@
     <!-- 子模块列表，后续新增模块在此注册 -->
     <modules>
         <module>business</module>
+        <module>framework</module>
     </modules>
 
     <properties>
