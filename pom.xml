@@ -23,6 +23,7 @@
     <modules>
         <module>business</module>
         <module>framework</module>
+        <module>ai</module>
     </modules>
 
     <properties>
