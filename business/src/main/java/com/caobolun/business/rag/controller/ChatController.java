@@ -21,5 +21,4 @@ public class ChatController {
         chatService.streamChat(message, sender);
         return emitter;
     }
-
 }
