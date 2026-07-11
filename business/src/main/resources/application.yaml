@@ -1,13 +1,5 @@
 spring:
   application:
     name: business
-
-server:
-  port: 8000
-
-ollama:
-  base-url: http://124.221.110.104:11434
-  model: deepseek-r1:1.5b
-
-rag:
-  sse-timeout-ms: 300000
+  profiles:
+    active: dev
