@@ -7,6 +7,7 @@
         <groupId>com.caobolun</groupId>
         <artifactId>rag</artifactId>
         <version>0.0.1-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>framework</artifactId>
@@ -14,6 +15,12 @@
     <name>framework</name>
     <description>framework</description>
 
-
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
 
 </project>
