@@ -1,24 +1,27 @@
 package com.caobolun.business.rag.service.impl;
 
-import com.caobolun.ai.client.OllamaClient;
+import com.caobolun.ai.client.OpenAICompatibleClient;
 import com.caobolun.business.rag.service.ChatService;
 import com.caobolun.framework.callback.StreamCallback;
+import com.caobolun.framework.convention.ChatMessage;
 import com.caobolun.framework.web.SseEmitterSender;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
 
-    private final OllamaClient ollamaClient;
-
+    private final OpenAICompatibleClient openAICompatibleClient;
 
     @Override
     public void streamChat(String userMessage, SseEmitterSender sender) {
-        ollamaClient.streamChat(userMessage, new StreamCallback() {
+        List<ChatMessage> userMessages = List.of(ChatMessage.user(userMessage));
+        openAICompatibleClient.streamChat(userMessages, new StreamCallback() {
             @Override
             public void onContent(String content) {
                 try{

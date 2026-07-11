@@ -1,7 +1,8 @@
 package com.caobolun.ai.client;
 
-import com.caobolun.framework.callback.StreamCallback;
 import com.caobolun.ai.config.OllamaProperties;
+import com.caobolun.framework.callback.StreamCallback;
+import com.caobolun.framework.convention.ChatMessage;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  *  ollama客户端
@@ -21,16 +23,22 @@ import java.util.Map;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class OllamaClient {
+public class OllamaClient implements LlmClient{
 
     private final OkHttpClient okHttpClient;
     private final OllamaProperties properties;
     private final ObjectMapper objectMapper;  // Jackson，Spring Boot 自动提供
 
-    public void streamChat(String userMessage, StreamCallback callback) {
+    @Override
+    public void streamChat(List<ChatMessage> messages, StreamCallback callback) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("model", properties.getModel());
-        map.put("messages", List.of(Map.of("role", "user", "content", userMessage)));
+        map.put("messages", messages.stream().map(msg -> {
+            Map<String, String> m = new LinkedHashMap<>();
+            m.put("role", msg.getRole().name().toLowerCase());
+            m.put("content", msg.getContent());
+            return m;
+        }).collect(Collectors.toList()));
         map.put("stream", true);
         String jsonBody;
         try {
