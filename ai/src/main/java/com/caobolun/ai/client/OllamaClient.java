@@ -1,7 +1,7 @@
-package com.caobolun.business.rag.client;
+package com.caobolun.ai.client;
 
-import com.caobolun.business.rag.callback.StreamCallback;
-import com.caobolun.business.rag.config.OllamaProperties;
+import com.caobolun.framework.callback.StreamCallback;
+import com.caobolun.ai.config.OllamaProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,7 +32,7 @@ public class OllamaClient {
         map.put("model", properties.getModel());
         map.put("messages", List.of(Map.of("role", "user", "content", userMessage)));
         map.put("stream", true);
-        String jsonBody = null;
+        String jsonBody;
         try {
             jsonBody = objectMapper.writeValueAsString(map);
         } catch (JsonProcessingException e) {

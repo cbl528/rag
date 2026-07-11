@@ -1,4 +1,4 @@
-package com.caobolun.business.rag.config;
+package com.caobolun.ai.config;
 
 import okhttp3.OkHttpClient;
 import org.springframework.context.annotation.Bean;

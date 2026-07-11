@@ -1,4 +1,4 @@
-package com.caobolun.business.rag.config;
+package com.caobolun.ai.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
