@@ -15,10 +15,10 @@ public class ChatController {
     private final ChatService chatService;
 
     @GetMapping(value = "/api/chat", produces = "text/event-stream;charset=UTF-8")
-    public SseEmitter chat(@RequestParam String message){
+    public SseEmitter chat(@RequestParam String message, @RequestParam(required = false) String sessionId){
         SseEmitter emitter = new SseEmitter(300000L);
         SseEmitterSender sender = new SseEmitterSender(emitter);
-        chatService.streamChat(message, sender);
+        chatService.streamChat(message, sessionId, sender);
         return emitter;
     }
 }

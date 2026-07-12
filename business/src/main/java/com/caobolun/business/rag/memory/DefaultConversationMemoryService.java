@@ -14,7 +14,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class DefaultConversationMemoryService implements ConversationMemoryStore{
+public class DefaultConversationMemoryService implements ConversationMemoryService{
 
     private final JdbcConversationMemoryStore memoryStore;
 
