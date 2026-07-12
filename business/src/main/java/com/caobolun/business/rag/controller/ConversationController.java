@@ -12,6 +12,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/api/v1/conversation")
 public class ConversationController {
     private final ConversationService conversationService;
 
