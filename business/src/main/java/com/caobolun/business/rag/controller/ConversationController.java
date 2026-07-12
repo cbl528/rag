@@ -1,12 +1,52 @@
 package com.caobolun.business.rag.controller;
 
+import com.caobolun.business.rag.dto.response.ConversationMessageVO;
+import com.caobolun.business.rag.dto.response.ConversationVO;
+import com.caobolun.business.rag.service.ConversationService;
+import com.caobolun.framework.convention.Result;
+import com.caobolun.framework.web.Results;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
 public class ConversationController {
+    private final ConversationService conversationService;
 
+    /**
+     * 获取会话列表
+     */
+    @GetMapping
+    public Result<List<ConversationVO>> listSessions() {
+        return Results.success(conversationService.listSessions());
+    }
 
+    /**
+     * 重命名会话
+     */
+    @PutMapping("/{sessionId}")
+    public Result<Void> renameSession(@PathVariable String sessionId,
+                                      @RequestBody String title) {
+        conversationService.renameSession(sessionId, title);
+        return Results.success();
+    }
 
+    /**
+     * 删除会话
+     */
+    @DeleteMapping("/{sessionId}")
+    public Result<Void> deleteSession(@PathVariable String sessionId) {
+        conversationService.deleteSession(sessionId);
+        return Results.success();
+    }
+
+    /**
+     * 获取会话消息列表
+     */
+    @GetMapping("/{sessionId}/messages")
+    public Result<List<ConversationMessageVO>> listMessages(@PathVariable String sessionId) {
+        return Results.success(conversationService.listMessages(sessionId));
+    }
 }
