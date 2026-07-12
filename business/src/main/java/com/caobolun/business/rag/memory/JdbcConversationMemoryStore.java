@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 对话记忆存储实现类
+ * 对话记忆数据库存储实现类
  */
 @Slf4j
 @Service

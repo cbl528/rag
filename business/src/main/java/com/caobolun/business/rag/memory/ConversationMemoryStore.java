@@ -26,4 +26,17 @@ public interface ConversationMemoryStore {
      * @return 消息ID
      */
     String append(String sessionId, ChatMessage message);
+
+    /**
+     * 加载历史并同时追加新消息（便捷方法）
+     * <p>
+     * 先 load 历史，再 append 新消息，一次调用完成两件事。
+     * 返回的是 append 之前的历史记录。
+     * </p>
+     */
+    default List<ChatMessage> loadAndAppend(String sessionId, ChatMessage message) {
+        List<ChatMessage> history = loadHistory(sessionId);
+        append(sessionId, message);
+        return history;
+    }
 }
