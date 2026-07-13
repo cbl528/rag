@@ -21,10 +21,11 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResponse login(LoginRequest request) {
+        // 参数校验
         if (request == null || StrUtil.isBlank(request.getUsername()) || StrUtil.isBlank(request.getPassword())) {
             throw new ClientException("用户名或密码不能为空");
         }
-
+        // 查询用户
         UserEntity user = userMapper.selectOne(
                 new LambdaQueryWrapper<UserEntity>()
                         .eq(UserEntity::getUsername, request.getUsername())
@@ -32,7 +33,10 @@ public class AuthServiceImpl implements AuthService {
         if (user == null) {
             throw new ClientException("用户不存在");
         }
-
+        // 密码校验
+        if (!request.getPassword().equals(user.getPassword())) {
+            throw new ClientException("密码错误");
+        }
         StpUtil.login(user.getUserId());
         String token = StpUtil.getTokenValue();
 

@@ -25,6 +25,9 @@ public class UserEntity {
 
     private String password;
 
+    @TableField("role")
+    private String role;  // "admin" 或 "user"
+
     private String nickname;
 
     private String avatar;
