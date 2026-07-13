@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useNavigate } from 'react-router-dom'
 import { PanelLeft } from 'lucide-react'
 import { AuthProvider } from './context/AuthContext'
 import { http } from './utils/http'
@@ -8,6 +8,7 @@ import ChatArea from './components/ChatArea'
 import LoginPage from './pages/LoginPage'
 
 function MainLayout() {
+  const navigate = useNavigate()
   const [conversations, setConversations] = useState([])
   const [currentId, setCurrentId] = useState(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -108,21 +109,12 @@ function MainLayout() {
         newSessionId = e.data
       })
 
-      // 后端鉴权失败时返回的 SSE error 事件
-      es.addEventListener('error', (e) => {
-        console.error('SSE 鉴权错误:', e.data)
+      // 后端鉴权失败 → 跳转登录页
+      es.addEventListener('error', () => {
         es.close()
         eventSourceRef.current = null
         setIsTyping(false)
-        setMessages((prev) => {
-          const msgs = [...prev]
-          // 把最后的 assistant 占位替换为错误提示
-          const last = msgs[msgs.length - 1]
-          if (last && last.id === assistantMsgId) {
-            msgs[msgs.length - 1] = { ...last, content: '⚠️ 登录已过期，请重新登录', role: 'assistant' }
-          }
-          return msgs
-        })
+        navigate('/login', { replace: true })
       })
 
       es.addEventListener('message', (e) => {
