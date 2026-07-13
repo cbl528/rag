@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { http } from '../utils/http'
 
 const AuthContext = createContext(null)
 
@@ -27,20 +28,8 @@ export function AuthProvider({ children }) {
   }, [])
 
   const login = useCallback(async (username, password, rememberMe) => {
-    const res = await fetch('/api/v1/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    })
-
-    const result = await res.json()
-
-    // 标准 Result<T> 响应格式：code === "0" 成功，非 "0" 失败（后端 code 为 String 类型）
-    if (result && result.code !== undefined && result.code !== '0') {
-      throw new Error(result.message || '登录失败，请检查用户名和密码')
-    }
-
-    const userData = result.data || result
+    // http.post 自动处理 JSON 序列化和响应解包
+    const userData = await http.post('/api/v1/auth/login', { username, password })
 
     if (rememberMe) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(userData))
@@ -54,7 +43,7 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     try {
-      await fetch('/api/v1/auth/logout', { method: 'POST' })
+      await http.post('/api/v1/auth/logout')
     } catch {
       // 即使请求失败也清除本地状态
     }

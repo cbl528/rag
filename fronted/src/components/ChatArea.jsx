@@ -4,14 +4,16 @@ import WelcomeScreen from './WelcomeScreen'
 import MessageBubble from './MessageBubble'
 import ChatInput from './ChatInput'
 
-export default function ChatArea({ conversation, isTyping, onSend, onStop, onSelectSuggestion, darkMode, onToggleDark }) {
+export default function ChatArea({ currentId, messages, isTyping, onSend, onStop, onSelectSuggestion, darkMode, onToggleDark }) {
   const scrollRef = useRef(null)
+
+  const noConversation = !currentId && messages.length === 0
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [conversation?.messages?.length, isTyping, conversation?.id])
+  }, [messages?.length, isTyping, currentId])
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-[#141414] transition-colors duration-200 relative">
@@ -30,12 +32,12 @@ export default function ChatArea({ conversation, isTyping, onSend, onStop, onSel
 
       {/* Content */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
-        {!conversation ? (
+        {noConversation ? (
           <WelcomeScreen onSelectSuggestion={onSelectSuggestion} />
         ) : (
           <div className="max-w-[768px] mx-auto px-4 py-6 space-y-8 pt-14">
-            {conversation.messages.map((msg) => (
-              <MessageBubble key={msg.id} message={msg} />
+            {messages.map((msg) => (
+              <MessageBubble key={msg.id || `${msg.role}-${msg.createTime}`} message={msg} />
             ))}
 
             {/* Typing indicator */}
@@ -56,7 +58,7 @@ export default function ChatArea({ conversation, isTyping, onSend, onStop, onSel
       </div>
 
       {/* Input */}
-      <div className={`max-w-[768px] mx-auto w-full px-4 ${!conversation ? 'max-w-[680px]' : ''}`}>
+      <div className={`max-w-[768px] mx-auto w-full px-4 ${noConversation ? 'max-w-[680px]' : ''}`}>
         <ChatInput isTyping={isTyping} onSend={onSend} onStop={onStop} />
       </div>
     </div>
