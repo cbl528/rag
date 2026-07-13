@@ -32,11 +32,11 @@ public class SaTokenConfig implements WebMvcConfigurer {
                     StpUtil.checkLogin();
                 }))
                 .addPathPatterns("/**")
-                .excludePathPatterns("/api/auth/**", "/error");
+                .excludePathPatterns("/api/v1/auth/**", "/error");
 
         // 2. 用户上下文拦截器（在登录拦截之后）
         registry.addInterceptor(userContextInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/api/auth/**", "/error");
+                .excludePathPatterns("/api/v1/auth/**", "/error");
     }
 }

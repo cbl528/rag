@@ -11,12 +11,11 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/rag")
 public class ChatController {
 
     private final ChatService chatService;
 
-    @GetMapping(value = "/chat", produces = "text/event-stream;charset=UTF-8")
+    @GetMapping(value = "/api/v1/rag/chat", produces = "text/event-stream;charset=UTF-8")
     public SseEmitter chat(@RequestParam String message, @RequestParam(required = false) String sessionId){
         SseEmitter emitter = new SseEmitter(300000L);
         SseEmitterSender sender = new SseEmitterSender(emitter);

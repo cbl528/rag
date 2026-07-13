@@ -11,23 +11,22 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/auth")
 public class AuthController {
 
     private final AuthService authService;
 
-    @PostMapping("/login")
+    @PostMapping("/api/v1/auth/login")
     public Result<LoginResponse> login(@RequestBody LoginRequest request) {
         return Results.success(authService.login(request));
     }
 
-    @PostMapping("/logout")
+    @PostMapping("/api/v1/auth/logout")
     public Result<Void> logout() {
         authService.logout();
         return Results.success();
     }
 
-    @GetMapping("/me")
+    @GetMapping("/api/v1/auth/me")
     public Result<UserInfoResponse> me() {
         return Results.success(authService.me());
     }

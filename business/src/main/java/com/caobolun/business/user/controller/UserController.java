@@ -14,37 +14,36 @@ import org.springframework.web.bind.annotation.*;
 // todo： 校验身份后面看能不能优化
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/users")
 public class UserController {
 
     private final UserService userService;
 
-    @PostMapping
+    @PostMapping("/api/v1/users")
     public Result<UserResponse> createUser(@RequestBody UserCreateRequest request) {
         StpUtil.checkRole("admin");
         return Results.success(userService.createUser(request));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/api/v1/users/{id}")
     public Result<UserResponse> updateUser(@PathVariable Long id, @RequestBody UserUpdateRequest request) {
         StpUtil.checkRole("admin");
         return Results.success(userService.updateUser(id, request));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/api/v1/users/{id}")
     public Result<Void> deleteUser(@PathVariable Long id) {
         StpUtil.checkRole("admin");
         userService.deleteUser(id);
         return Results.success();
     }
 
-    @GetMapping
+    @GetMapping("/api/v1/users")
     public Result<Page<UserResponse>> pageUser(@ModelAttribute UserPageRequest request) {
         StpUtil.checkRole("admin");
         return Results.success(userService.pageUser(request));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/api/v1/users/{id}")
     public Result<UserResponse> getUserById(@PathVariable Long id) {
         StpUtil.checkRole("admin");
         return Results.success(userService.getUserById(id));

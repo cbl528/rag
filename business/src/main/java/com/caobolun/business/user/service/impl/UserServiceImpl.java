@@ -42,7 +42,9 @@ public class UserServiceImpl implements UserService {
         UserEntity user = UserEntity.builder()
                 .userId(UUID.randomUUID().toString().replace("-", ""))
                 .username(request.getUsername())
-                .password(BCrypt.hashpw(request.getPassword()))
+//                .password(BCrypt.hashpw(request.getPassword()))
+                // todo: 暂时密码不做加密
+                .password(request.getPassword())
                 .nickname(StrUtil.isBlank(request.getNickname()) ? request.getUsername() : request.getNickname())
                 .role(StrUtil.isBlank(request.getRole()) ? "user" : request.getRole())
                 .avatar(StrUtil.nullToDefault(request.getAvatar(), ""))

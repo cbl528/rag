@@ -35,7 +35,11 @@ public class AuthServiceImpl implements AuthService {
             throw new ClientException("用户不存在");
         }
         // 密码校验
-        if (!BCrypt.checkpw(request.getPassword(), user.getPassword())) {
+//        if (!BCrypt.checkpw(request.getPassword(), user.getPassword())) {
+//            throw new ClientException("密码错误");
+//        }
+        // todo: 密码暂时不加密
+        if(!StrUtil.equals(request.getPassword(), user.getPassword())){
             throw new ClientException("密码错误");
         }
         StpUtil.login(user.getUserId());

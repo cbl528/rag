@@ -12,14 +12,13 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/conversation")
 public class ConversationController {
     private final ConversationService conversationService;
 
     /**
      * 获取会话列表
      */
-    @GetMapping
+    @GetMapping("/api/v1/conversation")
     public Result<List<ConversationVO>> listSessions() {
         return Results.success(conversationService.listSessions());
     }
@@ -27,7 +26,7 @@ public class ConversationController {
     /**
      * 重命名会话
      */
-    @PutMapping("/{sessionId}")
+    @PutMapping("/api/v1/conversation/{sessionId}")
     public Result<Void> renameSession(@PathVariable String sessionId,
                                       @RequestBody String title) {
         conversationService.renameSession(sessionId, title);
@@ -37,7 +36,7 @@ public class ConversationController {
     /**
      * 删除会话
      */
-    @DeleteMapping("/{sessionId}")
+    @DeleteMapping("/api/v1/conversation/{sessionId}")
     public Result<Void> deleteSession(@PathVariable String sessionId) {
         conversationService.deleteSession(sessionId);
         return Results.success();
@@ -46,7 +45,7 @@ public class ConversationController {
     /**
      * 获取会话消息列表
      */
-    @GetMapping("/{sessionId}/messages")
+    @GetMapping("/api/v1/conversation/{sessionId}/messages")
     public Result<List<ConversationMessageVO>> listMessages(@PathVariable String sessionId) {
         return Results.success(conversationService.listMessages(sessionId));
     }
