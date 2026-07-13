@@ -2,6 +2,7 @@ package com.caobolun.business.user.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.crypto.digest.BCrypt;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.caobolun.business.user.dao.entity.UserEntity;
 import com.caobolun.business.user.dao.mapper.UserMapper;
@@ -34,7 +35,7 @@ public class AuthServiceImpl implements AuthService {
             throw new ClientException("用户不存在");
         }
         // 密码校验
-        if (!request.getPassword().equals(user.getPassword())) {
+        if (!BCrypt.checkpw(request.getPassword(), user.getPassword())) {
             throw new ClientException("密码错误");
         }
         StpUtil.login(user.getUserId());
@@ -44,6 +45,8 @@ public class AuthServiceImpl implements AuthService {
                 .token(token)
                 .userId(user.getUserId())
                 .username(user.getUsername())
+                .role(user.getRole())
+                .avatar(user.getAvatar())
                 .build();
     }
 
@@ -66,6 +69,8 @@ public class AuthServiceImpl implements AuthService {
                 .userId(user.getUserId())
                 .username(user.getUsername())
                 .nickname(user.getNickname())
+                .role(user.getRole())
+                .avatar(user.getAvatar())
                 .build();
     }
 }
