@@ -4,12 +4,12 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.BCrypt;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.caobolun.business.user.dao.entity.UserEntity;
+import com.caobolun.business.user.dao.entity.UserDO;
 import com.caobolun.business.user.dao.mapper.UserMapper;
-import com.caobolun.business.user.dto.request.UserCreateRequest;
-import com.caobolun.business.user.dto.request.UserPageRequest;
-import com.caobolun.business.user.dto.request.UserUpdateRequest;
-import com.caobolun.business.user.dto.response.UserResponse;
+import com.caobolun.business.user.dto.request.UserCreateDTO;
+import com.caobolun.business.user.dto.request.UserPageDTO;
+import com.caobolun.business.user.dto.request.UserUpdateDTO;
+import com.caobolun.business.user.dto.response.UserVO;
 import com.caobolun.business.user.service.UserService;
 import com.caobolun.framework.exception.ClientException;
 import lombok.RequiredArgsConstructor;
@@ -25,21 +25,21 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
 
     @Override
-    public UserResponse createUser(UserCreateRequest request) {
+    public UserVO createUser(UserCreateDTO request) {
         // 1. 校验用户名
         if (StrUtil.isBlank(request.getUsername()) || StrUtil.isBlank(request.getPassword())) {
             throw new ClientException("用户名或密码不能为空");
         }
         // 2. 检查用户名唯一性
         Long count = userMapper.selectCount(
-                new LambdaQueryWrapper<UserEntity>()
-                        .eq(UserEntity::getUsername, request.getUsername())
+                new LambdaQueryWrapper<UserDO>()
+                        .eq(UserDO::getUsername, request.getUsername())
         );
         if (count > 0) {
             throw new ClientException("用户名已存在");
         }
         // 3. 构建实体
-        UserEntity user = UserEntity.builder()
+        UserDO user = UserDO.builder()
                 .userId(UUID.randomUUID().toString().replace("-", ""))
                 .username(request.getUsername())
 //                .password(BCrypt.hashpw(request.getPassword()))
@@ -50,12 +50,12 @@ public class UserServiceImpl implements UserService {
                 .avatar(StrUtil.nullToDefault(request.getAvatar(), ""))
                 .build();
         userMapper.insert(user);
-        return toUserResponse(user);
+        return toUserVO(user);
     }
 
     @Override
-    public UserResponse updateUser(Long id, UserUpdateRequest request) {
-        UserEntity user = userMapper.selectById(id);
+    public UserVO updateUser(Long id, UserUpdateDTO request) {
+        UserDO user = userMapper.selectById(id);
         if (user == null) {
             throw new ClientException("用户不存在");
         }
@@ -67,9 +67,9 @@ public class UserServiceImpl implements UserService {
         if (StrUtil.isNotBlank(request.getUsername())) {
             // 检查新用户名唯一性
             Long count = userMapper.selectCount(
-                    new LambdaQueryWrapper<UserEntity>()
-                            .eq(UserEntity::getUsername, request.getUsername())
-                            .ne(UserEntity::getId, id)
+                    new LambdaQueryWrapper<UserDO>()
+                            .eq(UserDO::getUsername, request.getUsername())
+                            .ne(UserDO::getId, id)
             );
             if (count > 0) {
                 throw new ClientException("用户名已存在");
@@ -86,12 +86,12 @@ public class UserServiceImpl implements UserService {
             user.setAvatar(request.getAvatar());
         }
         userMapper.updateById(user);
-        return toUserResponse(user);
+        return toUserVO(user);
     }
 
     @Override
     public void deleteUser(Long id) {
-        UserEntity user = userMapper.selectById(id);
+        UserDO user = userMapper.selectById(id);
         if (user == null) {
             throw new ClientException("用户不存在");
         }
@@ -103,38 +103,38 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Page<UserResponse> pageUser(UserPageRequest request) {
-        LambdaQueryWrapper<UserEntity> wrapper = new LambdaQueryWrapper<>();
+    public Page<UserVO> pageUser(UserPageDTO request) {
+        LambdaQueryWrapper<UserDO> wrapper = new LambdaQueryWrapper<>();
         if (StrUtil.isNotBlank(request.getKeyword())) {
-            wrapper.like(UserEntity::getUsername, request.getKeyword())
+            wrapper.like(UserDO::getUsername, request.getKeyword())
                     .or()
-                    .like(UserEntity::getNickname, request.getKeyword());
+                    .like(UserDO::getNickname, request.getKeyword());
         }
         // 按创建时间降序
-        wrapper.orderByDesc(UserEntity::getCreateTime);
+        wrapper.orderByDesc(UserDO::getCreateTime);
 
-        Page<UserEntity> page = userMapper.selectPage(
+        Page<UserDO> page = userMapper.selectPage(
                 new Page<>(request.getPage(), request.getSize()), wrapper
         );
-        // Entity -> Response 转换
-        Page<UserResponse> result = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
+        // Entity -> VO 转换
+        Page<UserVO> result = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
         result.setRecords(page.getRecords().stream()
-                .map(this::toUserResponse)
+                .map(this::toUserVO)
                 .collect(Collectors.toList()));
         return result;
     }
 
     @Override
-    public UserResponse getUserById(Long id) {
-        UserEntity user = userMapper.selectById(id);
+    public UserVO getUserById(Long id) {
+        UserDO user = userMapper.selectById(id);
         if (user == null) {
             throw new ClientException("用户不存在");
         }
-        return toUserResponse(user);
+        return toUserVO(user);
     }
 
-    private UserResponse toUserResponse(UserEntity user) {
-        return UserResponse.builder()
+    private UserVO toUserVO(UserDO user) {
+        return UserVO.builder()
                 .id(user.getId())
                 .userId(user.getUserId())
                 .username(user.getUsername())

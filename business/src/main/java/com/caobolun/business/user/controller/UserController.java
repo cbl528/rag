@@ -2,10 +2,10 @@ package com.caobolun.business.user.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.caobolun.business.user.dto.request.UserCreateRequest;
-import com.caobolun.business.user.dto.request.UserPageRequest;
-import com.caobolun.business.user.dto.request.UserUpdateRequest;
-import com.caobolun.business.user.dto.response.UserResponse;
+import com.caobolun.business.user.dto.request.UserCreateDTO;
+import com.caobolun.business.user.dto.request.UserPageDTO;
+import com.caobolun.business.user.dto.request.UserUpdateDTO;
+import com.caobolun.business.user.dto.response.UserVO;
 import com.caobolun.business.user.service.UserService;
 import com.caobolun.framework.convention.Result;
 import com.caobolun.framework.web.Results;
@@ -19,13 +19,13 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/api/v1/users")
-    public Result<UserResponse> createUser(@RequestBody UserCreateRequest request) {
+    public Result<UserVO> createUser(@RequestBody UserCreateDTO request) {
         StpUtil.checkRole("admin");
         return Results.success(userService.createUser(request));
     }
 
     @PutMapping("/api/v1/users/{id}")
-    public Result<UserResponse> updateUser(@PathVariable Long id, @RequestBody UserUpdateRequest request) {
+    public Result<UserVO> updateUser(@PathVariable Long id, @RequestBody UserUpdateDTO request) {
         StpUtil.checkRole("admin");
         return Results.success(userService.updateUser(id, request));
     }
@@ -38,13 +38,13 @@ public class UserController {
     }
 
     @GetMapping("/api/v1/users")
-    public Result<Page<UserResponse>> pageUser(@ModelAttribute UserPageRequest request) {
+    public Result<Page<UserVO>> pageUser(@ModelAttribute UserPageDTO request) {
         StpUtil.checkRole("admin");
         return Results.success(userService.pageUser(request));
     }
 
     @GetMapping("/api/v1/users/{id}")
-    public Result<UserResponse> getUserById(@PathVariable Long id) {
+    public Result<UserVO> getUserById(@PathVariable Long id) {
         StpUtil.checkRole("admin");
         return Results.success(userService.getUserById(id));
     }

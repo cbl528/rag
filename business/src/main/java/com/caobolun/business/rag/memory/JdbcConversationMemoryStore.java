@@ -4,8 +4,8 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.caobolun.business.rag.dao.entity.ChatMessageEntity;
-import com.caobolun.business.rag.dao.entity.ChatSessionEntity;
+import com.caobolun.business.rag.dao.entity.ChatMessageDO;
+import com.caobolun.business.rag.dao.entity.ChatSessionDO;
 import com.caobolun.business.rag.dao.mapper.ChatMessageMapper;
 import com.caobolun.business.rag.dao.mapper.ChatSessionMapper;
 import com.caobolun.framework.convention.ChatMessage;
@@ -36,12 +36,12 @@ public class JdbcConversationMemoryStore implements ConversationMemoryStore {
     @Override
     public List<ChatMessage> loadHistory(String sessionId) {
         // 1. 查最新 N 条消息（逻辑删除条件由 @TableLogic 自动追加）
-        LambdaQueryWrapper<ChatMessageEntity> wrapper = new LambdaQueryWrapper<ChatMessageEntity>()
-                .eq(ChatMessageEntity::getSessionId, sessionId)
-                .orderByDesc(ChatMessageEntity::getCreateTime);
+        LambdaQueryWrapper<ChatMessageDO> wrapper = new LambdaQueryWrapper<ChatMessageDO>()
+                .eq(ChatMessageDO::getSessionId, sessionId)
+                .orderByDesc(ChatMessageDO::getCreateTime);
 
-        Page<ChatMessageEntity> page = new Page<>(1, MAX_HISTORY_TURNS * 2, false);
-        List<ChatMessageEntity> records = chatMessageMapper.selectPage(page, wrapper).getRecords();
+        Page<ChatMessageDO> page = new Page<>(1, MAX_HISTORY_TURNS * 2, false);
+        List<ChatMessageDO> records = chatMessageMapper.selectPage(page, wrapper).getRecords();
 
         if (CollUtil.isEmpty(records)) {
             return List.of();
@@ -65,7 +65,7 @@ public class JdbcConversationMemoryStore implements ConversationMemoryStore {
 
     @Override
     public String append(String sessionId, ChatMessage message) {
-        ChatMessageEntity entity = toChatMessageEntity(sessionId, message);
+        ChatMessageDO entity = toChatMessageEntity(sessionId, message);
         chatMessageMapper.insert(entity);
 
         if (message.getRole() == ChatMessage.Role.USER) {
@@ -79,10 +79,10 @@ public class JdbcConversationMemoryStore implements ConversationMemoryStore {
      * 创建或更新会话
      */
     private void createOrUpdateSession(String sessionId, String userMessage) {
-        LambdaQueryWrapper<ChatSessionEntity> wrapper = new LambdaQueryWrapper<ChatSessionEntity>()
-                .eq(ChatSessionEntity::getSessionId, sessionId);
+        LambdaQueryWrapper<ChatSessionDO> wrapper = new LambdaQueryWrapper<ChatSessionDO>()
+                .eq(ChatSessionDO::getSessionId, sessionId);
 
-        ChatSessionEntity session = chatSessionMapper.selectOne(wrapper);
+        ChatSessionDO session = chatSessionMapper.selectOne(wrapper);
 
         if (session == null) {
             // 新会话：取用户消息前 50 字作为标题
@@ -90,7 +90,7 @@ public class JdbcConversationMemoryStore implements ConversationMemoryStore {
                     ? userMessage.substring(0, 50) + "…"
                     : userMessage;
 
-            ChatSessionEntity newSession = ChatSessionEntity.builder()
+            ChatSessionDO newSession = ChatSessionDO.builder()
                     .sessionId(sessionId)
                     .title(title)
                     .lastTime(LocalDateTime.now())
@@ -120,8 +120,8 @@ public class JdbcConversationMemoryStore implements ConversationMemoryStore {
     /**
      * ChatMessage → ChatMessageEntity
      */
-    private ChatMessageEntity toChatMessageEntity(String sessionId, ChatMessage message) {
-        ChatMessageEntity entity = new ChatMessageEntity();
+    private ChatMessageDO toChatMessageEntity(String sessionId, ChatMessage message) {
+        ChatMessageDO entity = new ChatMessageDO();
         entity.setSessionId(sessionId);
         entity.setRole(message.getRole().name().toLowerCase());
         entity.setContent(message.getContent());
@@ -133,7 +133,7 @@ public class JdbcConversationMemoryStore implements ConversationMemoryStore {
     /**
      * ChatMessageEntity → ChatMessage
      */
-    private ChatMessage toChatMessage(ChatMessageEntity entity) {
+    private ChatMessage toChatMessage(ChatMessageDO entity) {
         if (entity == null || StrUtil.isBlank(entity.getContent())) {
             return null;
         }

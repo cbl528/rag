@@ -1,15 +1,15 @@
 package com.caobolun.business.user.service;
 
-import com.caobolun.business.user.dto.request.LoginRequest;
-import com.caobolun.business.user.dto.response.LoginResponse;
-import com.caobolun.business.user.dto.response.UserInfoResponse;
+import com.caobolun.business.user.dto.request.LoginDTO;
+import com.caobolun.business.user.dto.response.LoginVO;
+import com.caobolun.business.user.dto.response.UserInfoVO;
 
 public interface AuthService {
 
-    LoginResponse login(LoginRequest request);
+    LoginVO login(LoginDTO request);
 
     void logout();
 
-    UserInfoResponse me();
+    UserInfoVO me();
 
 }

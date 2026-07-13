@@ -1,21 +1,21 @@
 package com.caobolun.business.user.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.caobolun.business.user.dto.request.UserCreateRequest;
-import com.caobolun.business.user.dto.request.UserPageRequest;
-import com.caobolun.business.user.dto.request.UserUpdateRequest;
-import com.caobolun.business.user.dto.response.UserResponse;
+import com.caobolun.business.user.dto.request.UserCreateDTO;
+import com.caobolun.business.user.dto.request.UserPageDTO;
+import com.caobolun.business.user.dto.request.UserUpdateDTO;
+import com.caobolun.business.user.dto.response.UserVO;
 
 public interface UserService {
 
-    UserResponse createUser(UserCreateRequest request);
+    UserVO createUser(UserCreateDTO request);
 
-    UserResponse updateUser(Long id, UserUpdateRequest request);
+    UserVO updateUser(Long id, UserUpdateDTO request);
 
     void deleteUser(Long id);
 
-    Page<UserResponse> pageUser(UserPageRequest request);
+    Page<UserVO> pageUser(UserPageDTO request);
 
-    UserResponse getUserById(Long id);
+    UserVO getUserById(Long id);
 
 }
