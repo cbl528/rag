@@ -23,6 +23,9 @@ public class ChatSessionDO {
 
     private String title;
 
+    @TableField("user_id")
+    private String userId;
+
     @TableField("last_time")
     private LocalDateTime lastTime;
 

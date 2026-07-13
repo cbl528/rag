@@ -1,5 +1,7 @@
 import { useMemo } from 'react'
-import { Plus, MessageSquare, Sun, Moon, PanelLeft } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Plus, MessageSquare, LogIn, LogOut, User, PanelLeft } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 function groupByDate(convs) {
   const now = new Date()
@@ -20,13 +22,13 @@ export default function Sidebar({
   conversations,
   currentId,
   collapsed,
-  darkMode,
   onNewChat,
   onSelectChat,
   onToggleSidebar,
-  onToggleDark,
 }) {
   const groups = useMemo(() => groupByDate(conversations), [conversations])
+  const { user, isLoggedIn, logout } = useAuth()
+  const navigate = useNavigate()
 
   const navItemCls = (id) =>
     `flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all duration-150 text-[13px] ${
@@ -54,7 +56,7 @@ export default function Sidebar({
           </button>
         </div>
 
-        {/* New Chat */}
+        {/* 新对话 */}
         <div className="px-3 pt-3 pb-2">
           <button
             className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[14px]
@@ -68,7 +70,7 @@ export default function Sidebar({
           </button>
         </div>
 
-        {/* Conversation List */}
+        {/* 对话列表 */}
         <div className="flex-1 overflow-y-auto px-3">
           {[
             { key: 'today', label: '今天', data: groups.today },
@@ -98,17 +100,38 @@ export default function Sidebar({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="px-3 pb-3 pt-2">
-          <button
-            className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg
-              hover:bg-gray-200/40 dark:hover:bg-white/5 transition-colors duration-150
-              text-[13px] text-gray-500 dark:text-gray-400"
-            onClick={onToggleDark}
-          >
-            {darkMode ? <Sun size={16} /> : <Moon size={16} />}
-            <span>{darkMode ? '浅色模式' : '深色模式'}</span>
-          </button>
+        {/* 底部 — 登录 / 用户信息 */}
+        <div className="px-3 pb-3 pt-2 border-t border-[#e5e5e5] dark:border-[#222]">
+          {isLoggedIn ? (
+            <div className="flex items-center justify-between px-2.5 py-2 rounded-lg
+              text-[13px] text-gray-500 dark:text-gray-400">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-6 h-6 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center shrink-0">
+                  <User size={13} className="text-white" />
+                </div>
+                <span className="truncate text-[var(--color-text-primary)] dark:text-[var(--color-text-primary-dark)]">
+                  {user?.username || '用户'}
+                </span>
+              </div>
+              <button
+                onClick={logout}
+                className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                title="退出登录"
+              >
+                <LogOut size={14} />
+              </button>
+            </div>
+          ) : (
+            <button
+              className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg
+                hover:bg-gray-200/40 dark:hover:bg-white/5 transition-colors duration-150
+                text-[13px] text-gray-500 dark:text-gray-400"
+              onClick={() => navigate('/login')}
+            >
+              <LogIn size={16} />
+              <span>请先进行登录</span>
+            </button>
+          )}
         </div>
       </div>
     </aside>

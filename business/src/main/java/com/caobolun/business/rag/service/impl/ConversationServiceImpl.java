@@ -9,6 +9,7 @@ import com.caobolun.business.rag.dao.mapper.ChatSessionMapper;
 import com.caobolun.business.rag.dto.response.ConversationMessageVO;
 import com.caobolun.business.rag.dto.response.ConversationVO;
 import com.caobolun.business.rag.service.ConversationService;
+import com.caobolun.framework.context.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,7 @@ public class ConversationServiceImpl implements ConversationService {
     public List<ConversationVO> listSessions() {
         List<ChatSessionDO> records = chatSessionMapper.selectList(
                 new LambdaQueryWrapper<ChatSessionDO>()
+                        .eq(ChatSessionDO::getUserId, UserContext.getUserId())
                         .orderByDesc(ChatSessionDO::getLastTime)
         );
         return records.stream()
@@ -41,7 +43,8 @@ public class ConversationServiceImpl implements ConversationService {
     public void deleteSession(String sessionId) {
         // 逻辑删除会话
         LambdaQueryWrapper<ChatSessionDO> sessionWrapper = new LambdaQueryWrapper<ChatSessionDO>()
-                .eq(ChatSessionDO::getSessionId, sessionId);
+                .eq(ChatSessionDO::getSessionId, sessionId)
+                .eq(ChatSessionDO::getUserId, UserContext.getUserId());
         ChatSessionDO session = chatSessionMapper.selectOne(sessionWrapper);
         if (session != null) {
             chatSessionMapper.deleteById(session.getId());
@@ -60,7 +63,8 @@ public class ConversationServiceImpl implements ConversationService {
             return;
         }
         LambdaQueryWrapper<ChatSessionDO> wrapper = new LambdaQueryWrapper<ChatSessionDO>()
-                .eq(ChatSessionDO::getSessionId, sessionId);
+                .eq(ChatSessionDO::getSessionId, sessionId)
+                .eq(ChatSessionDO::getUserId, UserContext.getUserId());
         ChatSessionDO session = chatSessionMapper.selectOne(wrapper);
         if (session != null) {
             session.setTitle(title.trim());
@@ -70,6 +74,15 @@ public class ConversationServiceImpl implements ConversationService {
 
     @Override
     public List<ConversationMessageVO> listMessages(String sessionId) {
+        // 校验当前用户对该会话的归属
+        LambdaQueryWrapper<ChatSessionDO> ownershipCheck = new LambdaQueryWrapper<ChatSessionDO>()
+                .eq(ChatSessionDO::getSessionId, sessionId)
+                .eq(ChatSessionDO::getUserId, UserContext.getUserId());
+        if (chatSessionMapper.selectCount(ownershipCheck) == 0) {
+            log.warn("用户 {} 尝试访问非归属会话: {}", UserContext.getUserId(), sessionId);
+            return List.of();
+        }
+
         List<ChatMessageDO> records = chatMessageMapper.selectList(
                 new LambdaQueryWrapper<ChatMessageDO>()
                         .eq(ChatMessageDO::getSessionId, sessionId)

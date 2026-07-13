@@ -9,6 +9,7 @@ import com.caobolun.business.rag.dao.entity.ChatSessionDO;
 import com.caobolun.business.rag.dao.mapper.ChatMessageMapper;
 import com.caobolun.business.rag.dao.mapper.ChatSessionMapper;
 import com.caobolun.framework.convention.ChatMessage;
+import com.caobolun.framework.context.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -93,6 +94,7 @@ public class JdbcConversationMemoryStore implements ConversationMemoryStore {
             ChatSessionDO newSession = ChatSessionDO.builder()
                     .sessionId(sessionId)
                     .title(title)
+                    .userId(UserContext.getUserId())
                     .lastTime(LocalDateTime.now())
                     .build();
             chatSessionMapper.insert(newSession);

@@ -1,12 +1,15 @@
 import { useState, useMemo, useRef, useCallback } from 'react'
+import { Routes, Route } from 'react-router-dom'
 import { PanelLeft } from 'lucide-react'
+import { AuthProvider } from './context/AuthContext'
 import Sidebar from './components/Sidebar'
 import ChatArea from './components/ChatArea'
+import LoginPage from './pages/LoginPage'
 
-// 测试用固定会话 ID
+// 测试用固定会话 ID（后续接入登录后可改为用户级 session）
 const TEST_SESSION_ID = '2ebd1fc83bfe465b8237419a00b19c41'
 
-export default function App() {
+function MainLayout() {
   const [conversations, setConversations] = useState([
     {
       id: TEST_SESSION_ID,
@@ -28,7 +31,7 @@ export default function App() {
     [conversations, currentId],
   )
 
-  // Dark mode
+  // 深色模式
   const applyDarkMode = useCallback((dm) => {
     document.documentElement.classList.toggle('dark', dm)
     document.body.classList.toggle('dark', dm)
@@ -41,7 +44,7 @@ export default function App() {
     })
   }
 
-  // Apply on first render
+  // 首次渲染时应用深色模式
   useState(() => applyDarkMode(darkMode))
 
   const sendMessage = useCallback((text) => {
@@ -63,7 +66,7 @@ export default function App() {
       }),
     )
 
-    // 2. SSE 请求后端（固定传测试 sessionId）
+    // 2. SSE 请求后端
     const url = `/api/chat?message=${encodeURIComponent(text)}&sessionId=${TEST_SESSION_ID}`
 
     setIsTyping(true)
@@ -114,11 +117,9 @@ export default function App() {
         conversations={conversations}
         currentId={currentId}
         collapsed={sidebarCollapsed}
-        darkMode={darkMode}
         onNewChat={() => setCurrentId(TEST_SESSION_ID)}
         onSelectChat={setCurrentId}
         onToggleSidebar={() => setSidebarCollapsed((v) => !v)}
-        onToggleDark={toggleDarkMode}
       />
 
       <main className="flex-1 flex flex-col min-w-0 relative">
@@ -138,8 +139,21 @@ export default function App() {
           onSend={sendMessage}
           onStop={stopTyping}
           onSelectSuggestion={sendMessage}
+          darkMode={darkMode}
+          onToggleDark={toggleDarkMode}
         />
       </main>
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/*" element={<MainLayout />} />
+      </Routes>
+    </AuthProvider>
   )
 }
