@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { ArrowRight, EyeOff, Eye } from 'lucide-react'
 
@@ -25,8 +25,7 @@ export default function LoginPage() {
 
   // 如果已登录（记住密码恢复会话），跳回首页
   if (isLoggedIn) {
-    navigate('/', { replace: true })
-    return null
+    return <Navigate to="/" replace />
   }
 
   const handleSubmit = async (e) => {

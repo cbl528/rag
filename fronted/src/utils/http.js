@@ -43,7 +43,7 @@ async function request(url, options = {}) {
   if (needsToken) {
     const token = getToken()
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`
+      headers['Authorization'] = token
     }
   }
   /* ============================================================= */
@@ -116,7 +116,7 @@ export const http = {
 
   /**
    * 构造带 token 的 SSE URL（EventSource 无法设置请求头，token 通过 URL 参数传递）
-   * 后端 sa-token.token-name = Authorization，所以参数名必须用 Authorization
+   * 后端 sa-token.token-name = Authorization，Sa-Token 按参数名读取
    */
   getSseUrl(baseUrl, params = {}) {
     const token = getToken()
