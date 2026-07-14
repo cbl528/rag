@@ -126,4 +126,16 @@ export const http = {
     }
     return `${baseUrl}?${query.toString()}`
   },
+
+  /**
+   * 上传文件（FormData 专用，不 JSON 序列化 body）
+   */
+  upload(url, formData, options) {
+    return request(url, {
+      ...options,
+      method: 'POST',
+      body: formData,
+      // 不设置 Content-Type，让浏览器自动设置带 boundary 的 multipart/form-data
+    })
+  },
 }

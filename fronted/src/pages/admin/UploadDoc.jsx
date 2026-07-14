@@ -40,9 +40,7 @@ export default function UploadDoc() {
       formData.append('file', file)
 
       const { http } = await import('../../utils/http')
-      const data = await http.post('/api/v1/admin/document/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      const data = await http.upload('/api/v1/admin/document/upload', formData)
 
       setResult({ success: true, message: `上传成功！共 ${data.chunkCount || '-'} 个文档片段` })
       setFile(null)

@@ -44,7 +44,7 @@ public class DocumentService {
         // 1. 分片
         List<VectorChunk> chunks = chunker.chunk(text, chunkSize, overlap);
         if (chunks.isEmpty()) {
-            log.warn("Document {} chunk result is empty", docId);
+            log.warn("文档 {} 分片结果为空", docId);
             return;
         }
         log.info("Document {} split into {} chunks", docId, chunks.size());
@@ -106,5 +106,15 @@ public class DocumentService {
                         .eq(KnowledgeChunkDO::getDocId, docId));
         vectorStoreService.deleteByDocId(docId);
         log.info("Document {} deleted", docId);
+    }
+
+    /**
+     * 获取文档的分片数量
+     */
+    public int getChunkCount(String docId) {
+        Long count = knowledgeChunkMapper.selectCount(
+                new LambdaQueryWrapper<KnowledgeChunkDO>()
+                        .eq(KnowledgeChunkDO::getDocId, docId));
+        return count != null ? count.intValue() : 0;
     }
 }

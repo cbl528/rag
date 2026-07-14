@@ -66,3 +66,25 @@ CREATE TABLE t_knowledge_chunk (
                                    KEY idx_doc_id (doc_id),
                                    FULLTEXT INDEX ft_content (content)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='知识库分片表';
+
+-- ============================================================
+-- 文档表（记录已上传的源文件）
+-- ============================================================
+CREATE TABLE t_document (
+                            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                            doc_id VARCHAR(64) NOT NULL COMMENT '文档业务ID，UUID',
+                            file_name VARCHAR(255) NOT NULL COMMENT '原始文件名',
+                            file_size BIGINT NOT NULL DEFAULT 0 COMMENT '文件大小（字节）',
+                            file_type VARCHAR(32) DEFAULT 'txt' COMMENT '文件类型',
+                            chunk_count INT DEFAULT 0 COMMENT '分片数量',
+                            chunk_size INT DEFAULT 512 COMMENT '分片大小',
+                            chunk_overlap INT DEFAULT 128 COMMENT '分片重叠',
+                            status VARCHAR(16) DEFAULT 'uploading' COMMENT '状态：uploading/indexing/indexed/failed',
+                            error_message TEXT COMMENT '失败原因',
+                            create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                            deleted TINYINT DEFAULT 0,
+                            UNIQUE KEY uk_doc_id (doc_id),
+                            KEY idx_status (status),
+                            KEY idx_create_time (create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='文档表';
