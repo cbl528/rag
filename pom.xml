@@ -36,6 +36,7 @@
         <mybatis-plus.version>3.5.14</mybatis-plus.version>
         <hutool-all.version>5.8.46</hutool-all.version>
         <sa-token.version>1.43.0</sa-token.version>
+        <milvus-sdk.version>2.5.5</milvus-sdk.version>
     </properties>
 
     <!--
@@ -91,10 +92,17 @@
                 <artifactId>hutool-all</artifactId>
                 <version>${hutool-all.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>cn.dev33</groupId>
                 <artifactId>sa-token-spring-boot3-starter</artifactId>
                 <version>${sa-token.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.milvus</groupId>
+                <artifactId>milvus-sdk-java</artifactId>
+                <version>${milvus-sdk.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

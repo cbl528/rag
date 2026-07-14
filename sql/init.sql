@@ -43,3 +43,26 @@ INSERT INTO t_user (user_id, username, nickname)
 VALUES ('default', 'default', '默认用户');
 
 ALTER TABLE t_user ADD COLUMN role VARCHAR(32) DEFAULT 'user' NOT NULL COMMENT '角色：user-普通用户 admin-管理员';
+
+INSERT INTO t_user (user_id, username, password, nickname, role)
+VALUES ('admin', 'admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '管理员', 'admin');
+
+CREATE TABLE t_knowledge_chunk (
+                                   id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                   chunk_id VARCHAR(64) NOT NULL COMMENT '全局唯一，对应 Milvus 主键',
+                                   doc_id VARCHAR(64) NOT NULL COMMENT '来源文档 ID',
+                                   chunk_index INT NOT NULL COMMENT '文档内序号',
+                                   content TEXT NOT NULL COMMENT '分片文本',
+                                   block_type VARCHAR(32) DEFAULT NULL COMMENT 'PARAGRAPH/TABLE/CODE/LIST等',
+                                   section_context VARCHAR(512) DEFAULT NULL COMMENT '节级上下文（表头等）',
+                                   outline_path JSON DEFAULT NULL COMMENT '章节路径',
+                                   char_count INT DEFAULT 0 COMMENT '字符数',
+                                   token_count INT DEFAULT 0 COMMENT '预估 token 数',
+                                   metadata JSON DEFAULT NULL COMMENT '扩展元数据',
+                                   create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                   update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                   deleted TINYINT DEFAULT 0,
+                                   UNIQUE KEY uk_chunk_id (chunk_id),
+                                   KEY idx_doc_id (doc_id),
+                                   FULLTEXT INDEX ft_content (content)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='知识库分片表';

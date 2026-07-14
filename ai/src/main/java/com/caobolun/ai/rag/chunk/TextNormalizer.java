@@ -24,7 +24,7 @@ public final class TextNormalizer {
 
     /**
      * 修复 URL 被换行断开的问题
-     * http://example.\ncom → http://example.com
+     * http://example.\n com → http://example.com
      */
     static String fixUrlLineBreaks(String text) {
         StringBuilder sb = new StringBuilder(text.length());

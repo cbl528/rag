@@ -16,4 +16,6 @@ public class OpenAIProperties {
     private String model = "Qwen/Qwen2.5-72B-Instruct";
     /** 流式读超时，0 不超时 */
     private long readTimeout = 0;
+
+    private String embeddingModel = "BAAI/bge-large-zh-v1.5";
 }
