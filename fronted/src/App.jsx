@@ -1,14 +1,34 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Routes, Route, useNavigate } from 'react-router-dom'
-import { PanelLeft } from 'lucide-react'
-import { AuthProvider } from './context/AuthContext'
+import { Routes, Route, useNavigate, Navigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import { http } from './utils/http'
 import Sidebar from './components/Sidebar'
+import Navbar from './components/Navbar'
 import ChatArea from './components/ChatArea'
 import LoginPage from './pages/LoginPage'
 
+// ---------- 路由守卫 ----------
+function ProtectedRoute({ children }) {
+  const { isLoggedIn, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-white dark:bg-[#141414]">
+        <div className="w-6 h-6 border-2 border-[#1d1d1f] dark:border-white border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (!isLoggedIn) {
+    return <Navigate to="/login" replace />
+  }
+
+  return children
+}
+
 function MainLayout() {
   const navigate = useNavigate()
+  const { logout } = useAuth()
   const [conversations, setConversations] = useState([])
   const [currentId, setCurrentId] = useState(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -109,11 +129,12 @@ function MainLayout() {
         newSessionId = e.data
       })
 
-      // 后端鉴权失败 → 跳转登录页
+      // 后端鉴权失败 → 清除失效 token 后跳转登录页
       es.addEventListener('error', () => {
         es.close()
         eventSourceRef.current = null
         setIsTyping(false)
+        logout()
         navigate('/login', { replace: true })
       })
 
@@ -142,7 +163,7 @@ function MainLayout() {
         fetchConversations()
       })
     },
-    [currentId, fetchConversations],
+    [currentId, fetchConversations, logout, navigate],
   )
 
   const stopTyping = useCallback(() => {
@@ -152,6 +173,11 @@ function MainLayout() {
     }
     setIsTyping(false)
   }, [])
+
+  const handleLogout = useCallback(async () => {
+    await logout()
+    navigate('/login', { replace: true })
+  }, [logout, navigate])
 
   const handleNewChat = useCallback(() => {
     setCurrentId(null)
@@ -167,19 +193,17 @@ function MainLayout() {
         onNewChat={handleNewChat}
         onSelectChat={setCurrentId}
         onToggleSidebar={() => setSidebarCollapsed((v) => !v)}
+        onLogout={handleLogout}
       />
 
-      <main className="flex-1 flex flex-col min-w-0 relative">
-        {sidebarCollapsed && (
-          <button
-            className="absolute top-3 left-3 z-20 p-2 rounded-xl bg-white dark:bg-[#1c1c1c]
-              hover:bg-gray-50 dark:hover:bg-[#222] transition-colors shadow-sm"
-            onClick={() => setSidebarCollapsed(false)}
-          >
-            <PanelLeft size={20} className="text-gray-500 dark:text-gray-400" />
-          </button>
-        )}
-
+      <main className="flex-1 flex flex-col min-w-0">
+        <Navbar
+          title={conversations.find((c) => c.id === currentId)?.title}
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleSidebar={() => setSidebarCollapsed(false)}
+          darkMode={darkMode}
+          onToggleDark={toggleDarkMode}
+        />
         <ChatArea
           currentId={currentId}
           messages={messages}
@@ -187,8 +211,6 @@ function MainLayout() {
           onSend={sendMessage}
           onStop={stopTyping}
           onSelectSuggestion={sendMessage}
-          darkMode={darkMode}
-          onToggleDark={toggleDarkMode}
         />
       </main>
     </div>
@@ -200,7 +222,14 @@ export default function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/*" element={<MainLayout />} />
+        <Route
+          path="/*"
+          element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </AuthProvider>
   )

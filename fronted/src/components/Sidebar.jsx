@@ -25,9 +25,10 @@ export default function Sidebar({
   onNewChat,
   onSelectChat,
   onToggleSidebar,
+  onLogout,
 }) {
   const groups = useMemo(() => groupByDate(conversations), [conversations])
-  const { user, isLoggedIn, logout } = useAuth()
+  const { user, isLoggedIn } = useAuth()
   const navigate = useNavigate()
 
   const navItemCls = (id) =>
@@ -114,7 +115,7 @@ export default function Sidebar({
                 </span>
               </div>
               <button
-                onClick={logout}
+                onClick={onLogout}
                 className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
                 title="退出登录"
               >

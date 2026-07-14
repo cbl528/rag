@@ -4,8 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import { ArrowRight, EyeOff, Eye } from 'lucide-react'
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+  const [username, setUsername] = useState('admin')
+  const [password, setPassword] = useState('123456')
   const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
