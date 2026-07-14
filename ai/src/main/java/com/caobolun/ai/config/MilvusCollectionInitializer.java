@@ -76,7 +76,7 @@ public class MilvusCollectionInitializer {
         fields.add(CreateCollectionReq.FieldSchema.builder()
                 .name("content_preview")
                 .dataType(DataType.VarChar)
-                .maxLength(256)
+                .maxLength(1024)
                 .build());
 
         // 构建 schema
