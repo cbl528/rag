@@ -4,6 +4,7 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.caobolun.ai.client.OpenAICompatibleClient;
 import com.caobolun.business.rag.memory.ConversationMemoryService;
+import com.caobolun.business.rag.rewrite.QueryRewriteService;
 import com.caobolun.business.rag.service.ChatService;
 import com.caobolun.business.rag.service.RagSearchService;
 import com.caobolun.framework.callback.StreamCallback;
@@ -24,6 +25,7 @@ public class ChatServiceImpl implements ChatService {
     private final OpenAICompatibleClient openAICompatibleClient;
     private final ConversationMemoryService memoryService;
     private final RagSearchService ragSearchService;
+    private final QueryRewriteService queryRewriteService;
 
     @Override
     public void streamChat(String userMessage, String sessionId, SseEmitterSender sender) {
@@ -38,10 +40,14 @@ public class ChatServiceImpl implements ChatService {
         ChatMessage userMsg = ChatMessage.user(userMessage);
         List<ChatMessage> history = memoryService.loadAndAppend(actualSessionId, userMsg);
 
-        // 4. RAG 检索：将相关知识注入上下文
-        String ragContext = ragSearchService.searchAsContext(userMessage);
+        // 4. 【新增】语义替换：改写用户问题，将代词替换为具体实体
+        //    改写后的查询用于 RAG 检索，原始问题仍用于 LLM 对话
+        String searchQuery = queryRewriteService.rewrite(userMessage, history);
 
-        // 5. 构造完整消息列表
+        // 5. RAG 检索：使用改写后的查询（已消解代词）
+        String ragContext = ragSearchService.searchAsContext(searchQuery);
+
+        // 6. 构造完整消息列表
         List<ChatMessage> messages = new ArrayList<>();
         if (!ragContext.isEmpty()) {
             messages.add(ChatMessage.system("你是一个知识库问答助手。" +
@@ -54,7 +60,7 @@ public class ChatServiceImpl implements ChatService {
         }
         messages.add(userMsg);
 
-        // 6. 流式调用 LLM
+        // 7. 流式调用 LLM
         StringBuilder fullAnswer = new StringBuilder();
         openAICompatibleClient.streamChat(messages, new StreamCallback() {
             @Override

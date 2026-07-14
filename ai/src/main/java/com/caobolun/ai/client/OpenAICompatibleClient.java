@@ -31,7 +31,63 @@ public class OpenAICompatibleClient implements LlmClient {
 
     @Override
     public void streamChat(List<ChatMessage> messages, StreamCallback callback) {
-        // 构建请求请求体
+        doChat(messages, true, callback);
+    }
+
+    /**
+     * 非流式调用：等待完整回复后一次性返回
+     *
+     * @param messages 消息列表
+     * @return LLM 的完整回复文本
+     */
+    public String chat(List<ChatMessage> messages) {
+        StringBuilder fullContent = new StringBuilder();
+        try {
+            fullContent.append(doSyncChat(messages));
+        } catch (Exception e) {
+            log.error("非流式调用 LLM 失败", e);
+            throw new RuntimeException("LLM 调用失败", e);
+        }
+        return fullContent.toString();
+    }
+
+    /**
+     * 发送同步（非流式）请求，返回完整响应文本
+     */
+    private String doSyncChat(List<ChatMessage> messages) throws Exception {
+        Map<String, Object> body = buildRequestBody(messages, false);
+        String json = objectMapper.writeValueAsString(body);
+
+        Request request = new Request.Builder()
+                .url(properties.getBaseUrl() + "/chat/completions")
+                .addHeader("Authorization", "Bearer " + properties.getApiKey())
+                .post(RequestBody.create(json, MediaType.get("application/json")))
+                .build();
+
+        try (Response response = okHttpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                String errBody = response.body() != null ? response.body().string() : "";
+                throw new RuntimeException("API 返回错误，HTTP " + response.code() + ": " + errBody);
+            }
+            ResponseBody responseBody = response.body();
+            if (responseBody == null) {
+                throw new RuntimeException("API 返回结果为空");
+            }
+            String responseStr = responseBody.string();
+            JsonNode root = objectMapper.readTree(responseStr);
+            JsonNode choices = root.get("choices");
+            if (choices == null || !choices.isArray() || choices.isEmpty()) {
+                throw new RuntimeException("API 返回 choices 为空: " + responseStr);
+            }
+            JsonNode message = choices.get(0).get("message");
+            if (message == null || message.get("content") == null) {
+                throw new RuntimeException("API 返回 message.content 为空");
+            }
+            return message.get("content").asText();
+        }
+    }
+
+    private Map<String, Object> buildRequestBody(List<ChatMessage> messages, boolean stream) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", properties.getModel());
         body.put("messages", messages.stream()
@@ -41,7 +97,15 @@ public class OpenAICompatibleClient implements LlmClient {
                     map.put("content", msg.getContent());
                     return map;
                 }).collect(Collectors.toList()));
-        body.put("stream", true);
+        body.put("stream", stream);
+        return body;
+    }
+
+    /**
+     * 流式调用共享逻辑
+     */
+    private void doChat(List<ChatMessage> messages, boolean stream, StreamCallback callback) {
+        Map<String, Object> body = buildRequestBody(messages, true);
 
         String json;
         try{

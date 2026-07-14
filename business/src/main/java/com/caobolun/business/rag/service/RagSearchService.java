@@ -3,8 +3,10 @@ package com.caobolun.business.rag.service;
 import com.caobolun.ai.rag.embedding.EmbeddingService;
 import com.caobolun.ai.rag.model.RetrievedChunk;
 import com.caobolun.ai.rag.store.VectorStoreService;
+import com.caobolun.business.rag.config.RagProperties;
 import com.caobolun.business.rag.dao.entity.KnowledgeChunkDO;
 import com.caobolun.business.rag.dao.mapper.KnowledgeChunkMapper;
+import com.caobolun.business.rag.rerank.RerankService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,27 +26,30 @@ public class RagSearchService {
     private final EmbeddingService embeddingService;
     private final VectorStoreService vectorStoreService;
     private final KnowledgeChunkMapper knowledgeChunkMapper;
-
-    private static final int DEFAULT_TOP_K = 5;
+    private final RerankService rerankService;
+    private final RagProperties ragProperties;
 
     /**
      * 搜索与 query 最相关的文档片段
      *
-     * @param query 用户问题
+     * @param query 用户问题（已改写，代词已替换）
      * @return 检索到的文档片段列表（含完整文本）
      */
     public List<RetrievedChunk> search(String query) {
-        return search(query, DEFAULT_TOP_K, null);
+        RagProperties.Rerank config = ragProperties.getRerank();
+        int candidateTopK = config.isEnabled() ? config.getCandidateTopK() : config.getFinalTopK();
+
+        return search(query, candidateTopK, null);
     }
 
     /**
      * 搜索并返回可用于 LLM 的 context 字符串
      *
-     * @param query 用户问题
+     * @param query 用户问题（已改写，代词已替换）
      * @return 拼好的 context 文本，可直接插入 system prompt
      */
     public String searchAsContext(String query) {
-        List<RetrievedChunk> chunks = search(query, DEFAULT_TOP_K, null);
+        List<RetrievedChunk> chunks = search(query);
         if (chunks.isEmpty()) {
             return "";
         }
@@ -72,7 +77,7 @@ public class RagSearchService {
         // 1. 用户问题向量化
         float[] queryEmbedding = embeddingService.embed(query);
 
-        // 2. Milvus 向量检索
+        // 2. Milvus 向量检索（取更多候选供 Rerank 用）
         List<RetrievedChunk> milvusResults = vectorStoreService.search(queryEmbedding,
                 topK, expr);
         if (milvusResults.isEmpty()) {
@@ -99,6 +104,14 @@ public class RagSearchService {
             }
         }
 
-        return milvusResults;
+        // 5. 【新增】Rerank 精排
+        List<RetrievedChunk> reranked = rerankService.rerank(query, milvusResults);
+
+        if (log.isDebugEnabled()) {
+            log.debug("RagSearch: query='{}', Milvus topK={}, reranked={}",
+                    query, topK, reranked.size());
+        }
+
+        return reranked;
     }
 }
