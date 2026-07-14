@@ -6,6 +6,8 @@ import Sidebar from './components/Sidebar'
 import Navbar from './components/Navbar'
 import ChatArea from './components/ChatArea'
 import LoginPage from './pages/LoginPage'
+import AdminLayout from './pages/admin/AdminLayout'
+import UploadDoc from './pages/admin/UploadDoc'
 
 // ---------- 路由守卫 ----------
 function ProtectedRoute({ children }) {
@@ -222,6 +224,19 @@ export default function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/admin/*"
+          element={
+            <ProtectedRoute>
+              <AdminLayout>
+                <Routes>
+                  <Route path="upload" element={<UploadDoc />} />
+                  <Route path="*" element={<Navigate to="upload" replace />} />
+                </Routes>
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/*"
           element={
