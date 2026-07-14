@@ -25,7 +25,7 @@ public class MilvusClientConfig {
         ConnectConfig config = ConnectConfig.builder()
                 .uri("http://" + properties.getHost() + ":" + properties.getPort())
                 .build();
-        log.info("Milvus client connected to {}:{}", properties.getHost(), properties.getPort());
+        log.info("Milvus 客户端链接至 {}:{}", properties.getHost(), properties.getPort());
         return new MilvusClientV2(config);
     }
 }

@@ -39,9 +39,7 @@ public class MilvusVectorStoreService implements VectorStoreService {
                     : chunk.getContent();
             row.addProperty("content_preview", preview);
         }
-        if (chunk.getBlockType() != null) {
-            row.addProperty("block_type", chunk.getBlockType());
-        }
+        row.addProperty("block_type", chunk.getBlockType() != null ? chunk.getBlockType() : "");
         // doc_id 从 metadata 中取
         Object docId = chunk.getMetadata() != null ? chunk.getMetadata().get("doc_id") : null;
         if (docId != null) {
@@ -70,9 +68,7 @@ public class MilvusVectorStoreService implements VectorStoreService {
                         : chunk.getContent();
                 row.addProperty("content_preview", preview);
             }
-            if (chunk.getBlockType() != null) {
-                row.addProperty("block_type", chunk.getBlockType());
-            }
+            row.addProperty("block_type", chunk.getBlockType() != null ? chunk.getBlockType() : "");
             Object docId = chunk.getMetadata() != null ? chunk.getMetadata().get("doc_id") : null;
             if (docId != null) {
                 row.addProperty("doc_id", docId.toString());
