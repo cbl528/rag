@@ -35,7 +35,7 @@ export default function Navbar({ title, sidebarCollapsed, onToggleSidebar, darkM
       </div>
 
       {/* 右侧 — 管理端 + 深浅模式切换 */}
-      <div className="w-[100px] flex items-center justify-end gap-1">
+      <div className="w-[135px] flex items-center justify-end gap-1">
         {isAdmin && (
           <button
             onClick={() => navigate('/admin')}
@@ -49,7 +49,7 @@ export default function Navbar({ title, sidebarCollapsed, onToggleSidebar, darkM
         )}
         <button
           onClick={onToggleDark}
-          className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+          className="h-8 px-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
           title={darkMode ? '浅色模式' : '深色模式'}
         >
           {darkMode ? <Sun size={18} className="text-gray-500 dark:text-gray-400" /> : <Moon size={18} className="text-gray-500 dark:text-gray-400" />}
