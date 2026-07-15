@@ -41,7 +41,7 @@ public class HttpRerankClient implements RerankClient {
                     "query", query,
                     "documents", documents,
                     "top_n", topN,
-                    "return_document", false
+                    "return_documents", false
             ));
 
             // 3. POST 到 {baseUrl}/rerank
@@ -53,7 +53,7 @@ public class HttpRerankClient implements RerankClient {
                     .build();
 
             try (Response response = httpClient.newCall(request).execute()) {
-                String body = response.body() != null ? response.body().toString() : "";
+                String body = response.body() != null ? response.body().string() : "";
 
                 if (!response.isSuccessful()) {
                     log.error("Rerank API 调用失败：status={}， body={}", response.code(), body);
