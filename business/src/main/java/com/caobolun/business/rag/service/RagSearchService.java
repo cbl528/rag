@@ -37,7 +37,7 @@ public class RagSearchService {
      */
     public List<RetrievedChunk> search(String query) {
         int candidateTopK = rerankProperties.isEnabled() ? rerankProperties.getCandidateTopK() : rerankProperties.getFinalTopK();
-        return search(query, candidateTopK, null);
+        return search(query, candidateTopK);
     }
 
     /**
@@ -71,13 +71,13 @@ public class RagSearchService {
         return context.toString();
     }
 
-    private List<RetrievedChunk> search(String query, int topK, String expr) {
+    private List<RetrievedChunk> search(String query, int topK) {
         // 1. 用户问题向量化
         float[] queryEmbedding = embeddingService.embed(query);
 
         // 2. Milvus 向量检索（取更多候选供 Rerank 用）
         List<RetrievedChunk> milvusResults = vectorStoreService.search(queryEmbedding,
-                topK, expr);
+                topK, null);
         if (milvusResults.isEmpty()) {
             return List.of();
         }
