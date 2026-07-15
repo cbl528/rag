@@ -2,6 +2,7 @@ package com.caobolun.business.rag.rerank;
 
 import com.caobolun.ai.config.RerankProperties;
 import com.caobolun.ai.rag.model.RetrievedChunk;
+import com.caobolun.ai.rag.rerank.HttpRerankClient;
 import com.caobolun.ai.rag.rerank.NoopRerankClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,8 @@ import java.util.stream.Collectors;
 public class DefaultRerankService implements RerankService {
 
     private final RerankProperties properties;
+    private final HttpRerankClient httpRerankClient;
+    private final NoopRerankClient noopRerankClient;
 
     @Override
     public List<RetrievedChunk> rerank(String query, List<RetrievedChunk> candidates) {
@@ -53,8 +56,14 @@ public class DefaultRerankService implements RerankService {
      */
     private List<RetrievedChunk> doEnabledRerank(String query, List<RetrievedChunk> candidates, int topN) {
         // 当前兜底：使用 NoopRerankClient 做基础排序截断
+        List<RetrievedChunk> result;
         // TODO 接入真实 Rerank API：调用 RerankClient.rerank(query, candidates, topN)
-        List<RetrievedChunk> result = new NoopRerankClient().rerank(query, candidates, topN);
+        try {
+            result = httpRerankClient.rerank(query, candidates, topN);
+        } catch (Exception e){
+            log.warn("Rerank API服务调用失败, 触发兜底服务", e);
+            result = noopRerankClient.rerank(query, candidates, topN);
+        }
         log.info("Rerank 完成（Noop 兜底）：query='{}', candidates={}, final={}",
                 query, candidates.size(), result.size());
         return result;

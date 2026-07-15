@@ -77,7 +77,7 @@ public class HttpRerankClient implements RerankClient {
                     reranked.add(retrievedChunk);
                 }
                 log.info("Rerank 完成（硅基流动）：query='{}', candidates={}, final={}",
-                        query, candidates.size(), reranked.size());
+                        query, candidates, reranked);
                 return reranked;
             }
         } catch (Exception e) {
