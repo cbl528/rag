@@ -39,6 +39,7 @@ public class ChatServiceImpl implements ChatService {
         // 3. 加载历史 + 保存用户消息
         ChatMessage userMsg = ChatMessage.user(userMessage);
         List<ChatMessage> history = memoryService.loadAndAppend(actualSessionId, userMsg);
+        boolean historyEmpty = history.isEmpty();
 
         // 4. 【新增】语义替换：改写用户问题，将代词替换为具体实体
         //    改写后的查询用于 RAG 检索，原始问题仍用于 LLM 对话
@@ -55,7 +56,7 @@ public class ChatServiceImpl implements ChatService {
                     "如果文档片段不足以回答问题，如实告知用户你不知道，" +
                     "不要编造信息。\n\n" + ragContext));
         }
-        if (history != null) {
+        if (!historyEmpty) {
             messages.addAll(history);
         }
         messages.add(userMsg);
@@ -92,5 +93,19 @@ public class ChatServiceImpl implements ChatService {
                 sender.fail(error);
             }
         });
+        if(historyEmpty){
+            try {
+                String title = openAICompatibleClient.chat(List.of(
+                        ChatMessage.system("你是一个对话标题生成助手。请根据用户的问题和助手的回答，生成一个简短（不超过20字）的对话标题，不要加引号，直接输出。"),
+                        ChatMessage.user(userMessage),
+                        ChatMessage.assistant(fullAnswer.toString())
+                ));
+                if (StrUtil.isNotBlank(title)) {
+                    memoryService.updateTitle(actualSessionId, title.trim());
+                }
+            } catch (Exception e) {
+                log.warn("标题生成失败，保持原截取标题", e);
+            }
+        }
     }
 }

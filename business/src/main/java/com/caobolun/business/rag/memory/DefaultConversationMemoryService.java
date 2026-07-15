@@ -45,4 +45,8 @@ public class DefaultConversationMemoryService implements ConversationMemoryServi
             return null;
         }
     }
+
+    public void updateTitle(String sessionId, String title) {
+        memoryStore.updateTitle(sessionId, title);
+    }
 }

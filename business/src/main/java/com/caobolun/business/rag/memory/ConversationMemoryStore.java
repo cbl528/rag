@@ -26,4 +26,6 @@ public interface ConversationMemoryStore {
      * @return 消息ID
      */
     String append(String sessionId, ChatMessage message);
+
+    void updateTitle(String sessionId, String title);
 }

@@ -28,7 +28,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class JdbcConversationMemoryStore implements ConversationMemoryStore {
 
-    /** 保留最近 20 轮对话（40 条消息） */
+    /**
+     * 保留最近 20 轮对话（40 条消息）
+     */
     private static final int MAX_HISTORY_TURNS = 20;
 
     private final ChatMessageMapper chatMessageMapper;
@@ -146,5 +148,13 @@ public class JdbcConversationMemoryStore implements ConversationMemoryStore {
             log.warn("未知消息角色: {}, 跳过此消息", entity.getRole());
             return null;
         }
+    }
+
+    public void updateTitle(String sessionId, String title) {
+        ChatSessionDO update = new ChatSessionDO();
+        update.setTitle(title);
+        chatSessionMapper.update(update,
+                new LambdaQueryWrapper<ChatSessionDO>()
+                        .eq(ChatSessionDO::getSessionId, sessionId));
     }
 }
