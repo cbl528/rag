@@ -1,4 +1,4 @@
-import { PanelLeft, Sun, Moon, Shield } from 'lucide-react'
+import { PanelLeft, Sun, Moon } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
@@ -39,10 +39,12 @@ export default function Navbar({ title, sidebarCollapsed, onToggleSidebar, darkM
         {isAdmin && (
           <button
             onClick={() => navigate('/admin')}
-            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-            title="管理端"
+            className="px-4 h-8 rounded-lg text-[13px] font-medium
+              bg-[#1d1d1f] dark:bg-white text-white dark:text-[#1d1d1f]
+              hover:opacity-80 transition-opacity duration-150"
+            title="进入控制台"
           >
-            <Shield size={18} className="text-gray-500 dark:text-gray-400" />
+            进入控制台
           </button>
         )}
         <button
