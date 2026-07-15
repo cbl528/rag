@@ -15,24 +15,21 @@ export default function ChatArea({ currentId, messages, isTyping, onSend, onStop
   }, [messages?.length, isTyping, currentId])
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-[#141414] transition-colors duration-200 relative">
-      {/* Content */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+    <div className="relative flex-1 min-h-0 bg-white dark:bg-[#141414] transition-colors duration-200">
+      {/* Content — 绝对定位填满容器，独立滚动 */}
+      <div ref={scrollRef} className="absolute inset-0 overflow-y-auto">
         {noConversation ? (
           <WelcomeScreen onSelectSuggestion={onSelectSuggestion} />
         ) : (
-          <div className="max-w-[768px] mx-auto px-4 py-6 space-y-8 pt-14">
+          <div className="max-w-[960px] mx-auto px-6 py-6 space-y-6 pt-14 pb-40">
             {messages.map((msg) => (
               <MessageBubble key={msg.id || `${msg.role}-${msg.createTime}`} message={msg} />
             ))}
 
             {/* Typing indicator */}
             {isTyping && (
-              <div className="flex gap-4 items-start animate-fade-in-up">
-                <div className="shrink-0 w-7 h-7 rounded-full bg-[var(--color-text-primary)] dark:bg-gray-200 flex items-center justify-center mt-0.5">
-                  <div className="w-1.5 h-1.5 bg-white dark:bg-gray-800 rounded-full" />
-                </div>
-                <div className="flex items-center gap-1 py-1">
+              <div className="animate-fade-in-up pl-1">
+                <div className="flex items-center gap-1 py-2">
                   <span className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 animate-dot-bounce" style={{ animationDelay: '0s' }} />
                   <span className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 animate-dot-bounce" style={{ animationDelay: '0.2s' }} />
                   <span className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 animate-dot-bounce" style={{ animationDelay: '0.4s' }} />
@@ -43,9 +40,11 @@ export default function ChatArea({ currentId, messages, isTyping, onSend, onStop
         )}
       </div>
 
-      {/* Input */}
-      <div className={`max-w-[768px] mx-auto w-full px-4 ${noConversation ? 'max-w-[680px]' : ''}`}>
-        <ChatInput isTyping={isTyping} onSend={onSend} onStop={onStop} />
+      {/* Input — 绝对定位固定在底部，不参与消息流布局 */}
+      <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-[#141414]">
+        <div className="max-w-[960px] mx-auto w-full px-6">
+          <ChatInput isTyping={isTyping} onSend={onSend} onStop={onStop} />
+        </div>
       </div>
     </div>
   )

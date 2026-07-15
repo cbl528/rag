@@ -46,15 +46,20 @@ function MainLayout() {
   const fetchConversations = useCallback(async () => {
     try {
       const data = await http.get('/api/v1/conversation')
-      // 标准化字段命名，兼容 Sidebar 的 groupByDate 等逻辑
-      setConversations(
-        (data || []).map((item) => ({
-          id: item.sessionId,
-          title: item.title,
-          createdAt: item.createTime,
-          lastTime: item.lastTime,
-        })),
-      )
+      const list = (data || []).map((item) => ({
+        id: item.sessionId,
+        title: item.title,
+        createdAt: item.createTime,
+        lastTime: item.lastTime,
+      }))
+      setConversations(list)
+      // 如果当前会话已被删除，重置 currentId
+      setCurrentId((prev) => {
+        if (prev && !list.some((c) => c.id === prev)) {
+          return null
+        }
+        return prev
+      })
     } catch (e) {
       console.error('加载会话列表失败', e)
     }
@@ -196,6 +201,7 @@ function MainLayout() {
         onSelectChat={setCurrentId}
         onToggleSidebar={() => setSidebarCollapsed((v) => !v)}
         onLogout={handleLogout}
+        onRefreshConversations={fetchConversations}
       />
 
       <main className="flex-1 flex flex-col min-w-0">

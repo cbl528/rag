@@ -1,7 +1,9 @@
-import { useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, MessageSquare, LogIn, LogOut, User, PanelLeft } from 'lucide-react'
+import { Plus, MessageSquare, LogIn, LogOut, User, PanelLeft, MoreHorizontal, Trash2, Pencil } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { http } from '../utils/http'
+import ConfirmDialog from './ConfirmDialog'
 
 function groupByDate(convs) {
   const now = new Date()
@@ -26,17 +28,99 @@ export default function Sidebar({
   onSelectChat,
   onToggleSidebar,
   onLogout,
+  onRefreshConversations,
 }) {
   const groups = useMemo(() => groupByDate(conversations), [conversations])
   const { user, isLoggedIn } = useAuth()
   const navigate = useNavigate()
 
+  const [hoveredId, setHoveredId] = useState(null)
+  const [menuOpenId, setMenuOpenId] = useState(null)
+
+  // 删除弹窗
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+
+  // 重命名弹窗
+  const [renameTarget, setRenameTarget] = useState(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [renaming, setRenaming] = useState(false)
+  const renameInputRef = useRef(null)
+
+  // 点击外部关闭菜单
+  useEffect(() => {
+    if (!menuOpenId) return
+    const handleClick = (e) => {
+      if (!e.target.closest('[data-menu-id]')) {
+        setMenuOpenId(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [menuOpenId])
+
+  // 打开重命名弹窗时自动聚焦并选中文本
+  useEffect(() => {
+    if (renameTarget && renameInputRef.current) {
+      renameInputRef.current.focus()
+      renameInputRef.current.select()
+    }
+  }, [renameTarget])
+
+  // —— 删除 ——
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await http.delete(`/api/v1/conversation/${deleteTarget}`)
+      setDeleteTarget(null)
+      // 如果删除的是当前会话，通知父组件刷新列表
+      onRefreshConversations?.()
+    } catch (e) {
+      console.error('删除失败', e)
+    } finally {
+      setDeleting(false)
+      setMenuOpenId(null)
+    }
+  }
+
+  // —— 重命名 ——
+  const handleRenameConfirm = async () => {
+    if (!renameTarget || !renameValue.trim()) return
+    setRenaming(true)
+    try {
+      await http.put(`/api/v1/conversation/${renameTarget}?title=${encodeURIComponent(renameValue.trim())}`)
+      setRenameTarget(null)
+      setRenameValue('')
+      onRefreshConversations?.()
+    } catch (e) {
+      console.error('重命名失败', e)
+    } finally {
+      setRenaming(false)
+      setMenuOpenId(null)
+    }
+  }
+
+  const openRename = (conv) => {
+    setRenameValue(conv.title || '')
+    setRenameTarget(conv.id)
+    setMenuOpenId(null)
+  }
+
+  const openDelete = (convId) => {
+    setDeleteTarget(convId)
+    setMenuOpenId(null)
+  }
+
   const navItemCls = (id) =>
-    `flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all duration-150 text-[13px] ${
+    `group relative flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all duration-150 text-[13px] ${
       currentId === id
-        ? 'bg-gray-200/70 dark:bg-white/10'
-        : 'hover:bg-gray-200/40 dark:hover:bg-white/5'
+        ? 'bg-gray-200/70 dark:bg-white/10 font-semibold'
+        : 'hover:bg-gray-200/40 dark:hover:bg-white/5 font-normal'
     }`
+
+  const sectionLabelCls =
+    'text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 px-2 mb-1'
 
   return (
     <aside
@@ -81,19 +165,96 @@ export default function Sidebar({
             (g) =>
               g.data.length > 0 && (
                 <div key={g.key} className="mb-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 px-2 mb-1">
-                    {g.label}
-                  </p>
+                  <p className={sectionLabelCls}>{g.label}</p>
                   {g.data.map((conv) => (
                     <div
                       key={conv.id}
                       className={navItemCls(conv.id)}
                       onClick={() => onSelectChat(conv.id)}
+                      onMouseEnter={() => setHoveredId(conv.id)}
+                      onMouseLeave={() => setHoveredId(null)}
                     >
                       <MessageSquare size={14} className="shrink-0 text-gray-400" />
                       <span className="truncate flex-1 text-[var(--color-text-primary)] dark:text-[var(--color-text-primary-dark)]">
                         {conv.title}
                       </span>
+
+                      {/* 三点按钮 — 悬浮或菜单打开时显示 */}
+                      {(hoveredId === conv.id || menuOpenId === conv.id) && (
+                        <button
+                          data-menu-id={conv.id}
+                          className="shrink-0 p-1 rounded-md
+                            text-gray-400 hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7]
+                            hover:bg-black/10 dark:hover:bg-white/10
+                            transition-all duration-150"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setMenuOpenId(menuOpenId === conv.id ? null : conv.id)
+                          }}
+                        >
+                          <MoreHorizontal size={15} />
+                        </button>
+                      )}
+
+                      {/* 下拉菜单 — 内嵌在列表项中 */}
+                      {menuOpenId === conv.id && (
+                        <div
+                          data-menu-id={conv.id}
+                          className="fixed z-40 w-[140px] py-1 rounded-xl
+                            bg-white dark:bg-[#1c1c1e]
+                            shadow-[0_4px_20px_rgba(0,0,0,0.12)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)]
+                            border border-[#e5e5e5] dark:border-[#333]
+                            animate-fade-in-up"
+                          style={{ top: -9999, left: -9999 }}
+                          ref={(el) => {
+                            if (!el) return
+                            // 首次渲染时定位到三点按钮下方
+                            if (el.style.top === '-9999px') {
+                              const btn = document.querySelector(`[data-menu-id="${conv.id}"]`)
+                              if (btn) {
+                                const rect = btn.getBoundingClientRect()
+                                const menuW = 140
+                                // 菜单右对齐到按钮
+                                let left = rect.right - menuW
+                                // 不超出左侧边界
+                                if (left < 8) left = 8
+                                el.style.left = `${left}px`
+                                el.style.top = `${rect.bottom + 4}px`
+                              }
+                            }
+                          }}
+                        >
+                          {/* 重命名 */}
+                          <button
+                            className="flex items-center gap-2.5 w-full px-3 py-2 text-[13px]
+                              text-[#1d1d1f] dark:text-[#f5f5f7]
+                              hover:bg-gray-100 dark:hover:bg-white/10
+                              transition-colors duration-100"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openRename(conv)
+                            }}
+                          >
+                            <Pencil size={14} className="text-gray-400" />
+                            重命名
+                          </button>
+
+                          {/* 删除 */}
+                          <button
+                            className="flex items-center gap-2.5 w-full px-3 py-2 text-[13px]
+                              text-red-600 dark:text-red-400
+                              hover:bg-red-50 dark:hover:bg-red-500/10
+                              transition-colors duration-100"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openDelete(conv.id)
+                            }}
+                          >
+                            <Trash2 size={14} />
+                            删除
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -135,6 +296,46 @@ export default function Sidebar({
           )}
         </div>
       </div>
+
+      {/* ====== 删除确认弹窗 ====== */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="删除对话"
+        description="您确定要删除该对话吗，一旦删除无法恢复。"
+        confirmLabel="删除"
+        confirmDanger
+        loading={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => { setDeleteTarget(null); setMenuOpenId(null) }}
+      />
+
+      {/* ====== 重命名弹窗 ====== */}
+      <ConfirmDialog
+        open={!!renameTarget}
+        title="重命名对话"
+        confirmLabel="保存"
+        loading={renaming}
+        onConfirm={handleRenameConfirm}
+        onCancel={() => { setRenameTarget(null); setRenameValue(''); setMenuOpenId(null) }}
+      >
+        <input
+          ref={renameInputRef}
+          type="text"
+          value={renameValue}
+          onChange={(e) => setRenameValue(e.target.value)}
+          placeholder="输入新名称"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleRenameConfirm()
+          }}
+          className="w-full px-4 py-2.5 text-[15px] rounded-xl
+            bg-white dark:bg-[#1c1c1e]
+            text-[#1d1d1f] dark:text-[#f5f5f7]
+            placeholder:text-[#aeaeb2] dark:placeholder:text-[#636366]
+            border border-[#e5e5e5] dark:border-[#333]
+            focus:outline-none focus:border-[#1d1d1f] dark:focus:border-[#f5f5f7]
+            transition-colors duration-200"
+        />
+      </ConfirmDialog>
     </aside>
   )
 }

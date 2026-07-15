@@ -10,27 +10,26 @@ import 'katex/dist/katex.min.css'
 export default function MessageBubble({ message }) {
   const isUser = message.role === 'user'
 
-  return (
-    <div className={`flex gap-4 animate-fade-in-up ${isUser ? 'justify-end' : 'justify-start'}`}>
-      {/* AI Avatar */}
-      {!isUser && (
-        <div className="shrink-0 mt-1">
-          <div className="w-7 h-7 rounded-full bg-[var(--color-text-primary)] dark:bg-gray-200 flex items-center justify-center">
-            <Bot size={15} className="text-white dark:text-gray-800" />
-          </div>
-        </div>
-      )}
+  // 打字中的占位消息（无内容）
+  if (!message.content && !isUser) {
+    return null
+  }
 
-      {/* Content */}
-      <div className="max-w-[85%] min-w-0">
-        {isUser ? (
-          <p className="text-[15px] leading-relaxed px-5 py-3 rounded-2xl
+  return (
+    <div className={`animate-fade-in-up ${isUser ? 'flex justify-end' : ''}`}>
+      {isUser ? (
+        /* 用户消息 — 气泡样式 */
+        <div className="max-w-[75%]">
+          <p className="text-[16px] leading-relaxed px-5 py-3 rounded-2xl
             bg-[#f4f4f4] dark:bg-[#2a2a2a]
             text-[var(--color-text-primary)] dark:text-[var(--color-text-primary-dark)]">
             {message.content}
           </p>
-        ) : (
-          <div className="prose-content text-[15px] leading-relaxed
+        </div>
+      ) : (
+        /* AI 回复 — 无边界纯文本 */
+        <div>
+          <div className="prose-content text-[16px] leading-[1.8]
             text-[var(--color-text-primary)] dark:text-[var(--color-text-primary-dark)]">
             <ReactMarkdown
               remarkPlugins={[remarkGfm, remarkMath]}
@@ -38,15 +37,6 @@ export default function MessageBubble({ message }) {
             >
               {message.content}
             </ReactMarkdown>
-          </div>
-        )}
-      </div>
-
-      {/* User Avatar */}
-      {isUser && (
-        <div className="shrink-0 mt-1">
-          <div className="w-7 h-7 rounded-full bg-[#b3b3b3] dark:bg-gray-600 flex items-center justify-center">
-            <User size={15} className="text-white" />
           </div>
         </div>
       )}

@@ -28,7 +28,7 @@ public class ConversationController {
      */
     @PutMapping("/api/v1/conversation/{sessionId}")
     public Result<Void> renameSession(@PathVariable String sessionId,
-                                      @RequestBody String title) {
+                                      @RequestParam String title) {
         conversationService.renameSession(sessionId, title);
         return Results.success();
     }
