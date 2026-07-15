@@ -1,12 +1,11 @@
 package com.caobolun.business.rag.rerank;
 
+import com.caobolun.ai.config.RerankProperties;
 import com.caobolun.ai.rag.model.RetrievedChunk;
 import com.caobolun.ai.rag.rerank.NoopRerankClient;
-import com.caobolun.business.rag.config.RagProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import com.caobolun.business.rag.config.RagProperties.Rerank;
 
 import java.util.Comparator;
 import java.util.List;
@@ -26,7 +25,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DefaultRerankService implements RerankService {
 
-    private final RagProperties ragProperties;
+    private final RerankProperties properties;
 
     @Override
     public List<RetrievedChunk> rerank(String query, List<RetrievedChunk> candidates) {
@@ -34,10 +33,9 @@ public class DefaultRerankService implements RerankService {
             return List.of();
         }
 
-        Rerank config = ragProperties.getRerank();
-        int finalTopK = Math.max(1, config.getFinalTopK());
+        int finalTopK = Math.max(1, properties.getFinalTopK());
 
-        if (config.isEnabled()) {
+        if (properties.isEnabled()) {
             // 启用 Rerank — 后续接入真实 Rerank API 时替换此分支
             return doEnabledRerank(query, candidates, finalTopK);
         } else {
@@ -57,7 +55,6 @@ public class DefaultRerankService implements RerankService {
         // 当前兜底：使用 NoopRerankClient 做基础排序截断
         // TODO 接入真实 Rerank API：调用 RerankClient.rerank(query, candidates, topN)
         List<RetrievedChunk> result = new NoopRerankClient().rerank(query, candidates, topN);
-
         log.info("Rerank 完成（Noop 兜底）：query='{}', candidates={}, final={}",
                 query, candidates.size(), result.size());
         return result;
