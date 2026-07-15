@@ -6,6 +6,7 @@ import com.caobolun.business.rag.config.RagProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import com.caobolun.business.rag.config.RagProperties.Rerank;
 
 import java.util.Comparator;
 import java.util.List;
@@ -33,7 +34,7 @@ public class DefaultRerankService implements RerankService {
             return List.of();
         }
 
-        RagProperties.Rerank config = ragProperties.getRerank();
+        Rerank config = ragProperties.getRerank();
         int finalTopK = Math.max(1, config.getFinalTopK());
 
         if (config.isEnabled()) {
