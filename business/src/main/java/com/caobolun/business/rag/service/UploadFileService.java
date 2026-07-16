@@ -4,11 +4,9 @@ import cn.hutool.core.util.IdUtil;
 import com.caobolun.business.rag.dao.entity.DocumentDO;
 import com.caobolun.business.rag.dao.mapper.DocumentMapper;
 import com.caobolun.business.rag.dto.response.UploadFileResponse;
-import com.caobolun.framework.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
@@ -45,10 +43,9 @@ public class UploadFileService {
         int actualChunkSize = chunkSize != null ? chunkSize : DEFAULT_CHUNK_SIZE;
         int actualOverlap = overlap != null ? overlap : DEFAULT_CHUNK_OVERLAP;
 
-        // 1. 读取文件内容
         String text = readFileContent(file);
 
-        // 2. 创建文档记录
+        // 创建文档记录
         String docId = IdUtil.fastSimpleUUID();
         DocumentDO doc = new DocumentDO();
         doc.setDocId(docId);
@@ -61,29 +58,13 @@ public class UploadFileService {
         doc.setStatus("uploading");
         documentMapper.insert(doc);
 
-        // 异步执行文档索引化任务
+        // ★ 异步索引（DocumentService 内部处理所有状态更新 + 异常兜底）
         CompletableFuture.runAsync(() -> {
-            try {
-                // 3. 调用 DocumentService 进行分片、向量化并存储
-                documentService.indexDocument(docId, text, actualChunkSize, actualOverlap);
-
-                // 4. 获取分片数并更新文档状态
-                int chunkCount = documentService.getChunkCount(docId);
-                doc.setChunkCount(chunkCount);
-                doc.setStatus("indexed");
-                documentMapper.updateById(doc);
-
-                log.info("文档上传成功: docId={}, fileName={}, chunks={}",
-                        docId, file.getOriginalFilename(), chunkCount);
-            } catch (Exception e) {
-                doc.setStatus("failed");
-                doc.setErrorMessage(e.getMessage());
-                documentMapper.updateById(doc);
-                log.error("文档索引化失败: docId={}, fileName={}", docId, file.getOriginalFilename(), e);
-            }
+            documentService.indexDocument(docId, text, actualChunkSize, actualOverlap);
+            log.info("文档上传/索引任务完成: docId={}", docId);
         }, documentIndexExecutor);
 
-        // 立即返回结果
+        // 立即返回
         return UploadFileResponse.builder()
                 .docId(docId)
                 .fileName(file.getOriginalFilename())
