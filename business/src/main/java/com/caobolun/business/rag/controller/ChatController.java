@@ -19,7 +19,7 @@ public class ChatController {
     public SseEmitter chat(@RequestParam String message, @RequestParam(required = false) String sessionId){
         SseEmitter emitter = new SseEmitter(300000L);
         SseEmitterSender sender = new SseEmitterSender(emitter);
-        chatService.streamChat(message, sessionId, sender);
-        return emitter;
+        chatService.streamChat(message, sessionId, sender); //这里将streamchat方法改为异步非阻塞
+        return emitter; // 直接返回结果，不再占用tomcat线程
     }
 }
