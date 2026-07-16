@@ -106,7 +106,6 @@ public class ChatServiceImpl implements ChatService {
                 }, chatStreamExecutor)
                 .exceptionally(e -> {
                     log.error("流式对话异常", e);
-                    log.error("流式对话异常", e);
                     if (e.getCause() != null) {
                         sender.fail(new RuntimeException(e.getCause()));
                     } else {
