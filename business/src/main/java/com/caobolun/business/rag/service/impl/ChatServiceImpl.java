@@ -31,6 +31,8 @@ public class ChatServiceImpl implements ChatService {
     // 引入动态线程池
     private final Executor chatStreamExecutor;      // SSE 流式专用
     private final Executor asyncTaskExecutor;        // fire-and-forget 任务
+    private final Executor llmSyncExecutor;
+    private final Executor ragSearchExecutor;
 
     @Override
     public void streamChat(String userMessage, String sessionId, SseEmitterSender sender) {
@@ -40,81 +42,79 @@ public class ChatServiceImpl implements ChatService {
 
         // 2. 先告诉前端本次会话 ID
         sender.sendEvent("session", actualSessionId);
+        ChatMessage userMsg = ChatMessage.user(userMessage);
 
-        CompletableFuture.runAsync(() -> {
-            try {
-                // 3. 加载历史 + 保存用户消息
-                ChatMessage userMsg = ChatMessage.user(userMessage);
-                List<ChatMessage> history = memoryService.loadAndAppend(actualSessionId, userMsg);
-                boolean historyEmpty = history.isEmpty();
+        CompletableFuture
+                // 1. 加载历史 + 保存用户信息
+                .supplyAsync(() -> {
+                    List<ChatMessage> history = memoryService.loadAndAppend(actualSessionId, userMsg);
+                    return new ChatContext(userMsg, history, history.isEmpty(), actualSessionId);
+                }, chatStreamExecutor)
+                // 2. 执行查询改写
+                .thenApplyAsync(ctx -> {
+                    ctx.searchQuery = queryRewriteService.rewrite(userMessage, ctx.history);
+                    return ctx;
+                }, llmSyncExecutor)
+                .thenApplyAsync(ctx -> {
+                    ctx.ragContext = ragSearchService.searchAsContext(ctx.searchQuery);
+                    return ctx;
+                }, ragSearchExecutor)
+                .thenAcceptAsync(ctx -> {
+                    List<ChatMessage> messages = new ArrayList<>();
+                    if (!ctx.ragContext.isEmpty()) {
+                        messages.add(ChatMessage.system("你是一个知识库问答助手。" +
+                                "请基于以下提供的知识库文档片段回答用户问题。" +
+                                "如果文档片段不足以回答问题，如实告知用户你不知道，" +
+                                "不要编造信息。\n\n" + ctx.ragContext));
+                    }
+                    if (!ctx.historyEmpty) {
+                        // 将历史会话添加到聊天信息
+                        messages.addAll(ctx.history);
+                    }
+                    messages.add(ctx.userMsg);
 
-                // 4. 【新增】语义替换：改写用户问题，将代词替换为具体实体
-                //    改写后的查询用于 RAG 检索，原始问题仍用于 LLM 对话
-                String searchQuery = queryRewriteService.rewrite(userMessage, history);
-
-                // 5. RAG 检索：使用改写后的查询（已消解代词）
-                String ragContext = ragSearchService.searchAsContext(searchQuery);
-
-                // 6. 构造完整消息列表
-                List<ChatMessage> messages = new ArrayList<>();
-                if (!ragContext.isEmpty()) {
-                    messages.add(ChatMessage.system("你是一个知识库问答助手。" +
-                            "请基于以下提供的知识库文档片段回答用户问题。" +
-                            "如果文档片段不足以回答问题，如实告知用户你不知道，" +
-                            "不要编造信息。\n\n" + ragContext));
-                }
-                if (!historyEmpty) {
-                    messages.addAll(history);
-                }
-                messages.add(userMsg);
-
-                // 7. 流式调用 LLM
-                StringBuilder fullAnswer = new StringBuilder();
-                openAICompatibleClient.streamChat(messages, new StreamCallback() {
-                    @Override
-                    public void onContent(String content) {
-                        try {
+                    StringBuilder fullAnswer = new StringBuilder();
+                    openAICompatibleClient.streamChat(messages, new StreamCallback() {
+                        @Override
+                        public void onContent(String content) {
                             fullAnswer.append(content);
                             sender.sendEvent("message", content);
-                        } catch (Exception e) {
-                            log.warn("SSE 推送失败，客户端可能已断开", e);
                         }
-                    }
 
-                    @Override
-                    public void onComplete() {
-                        try {
-                            // 保存 assistant 回复
-                            memoryService.append(actualSessionId,
+                        @Override
+                        public void onComplete() {
+                            memoryService.append(ctx.actualSessionId,
                                     ChatMessage.assistant(fullAnswer.toString()));
                             sender.sendEvent("done", "[DONE]");
                             sender.complete();
-                        } catch (Exception e) {
-                            log.warn("发送结束事件失败", e);
+
+                            // 标题生成 → fire-and-forget
+                            if (ctx.historyEmpty) {
+                                CompletableFuture.runAsync(
+                                        () -> generateAndUpdateTitle(ctx.actualSessionId,
+                                                userMessage, fullAnswer.toString()),
+                                        asyncTaskExecutor);
+                            }
                         }
 
-                        // ★ 标题生成 → fire-and-forget 到 asyncTaskExecutor
-                        //    SSE [DONE] 已发出，用户能马上看到完成，标题在后台慢慢生成
-                        if (historyEmpty) {
-                            CompletableFuture.runAsync(() ->
-                                    generateAndUpdateTitle(
-                                            actualSessionId,
-                                            userMessage,
-                                            fullAnswer.toString()), asyncTaskExecutor);
+                        @Override
+                        public void onError(Throwable error) {
+                            log.error("流式调用失败", error);
+                            sender.fail(error);
                         }
+                    });
+                }, chatStreamExecutor)
+                .exceptionally(e -> {
+                    log.error("流式对话异常", e);
+                    log.error("流式对话异常", e);
+                    if (e.getCause() != null) {
+                        sender.fail(new RuntimeException(e.getCause()));
+                    } else {
+                        sender.fail(new RuntimeException(e));
                     }
-
-                    @Override
-                    public void onError(Throwable error) {
-                        log.error("流式调用失败", error);
-                        sender.fail(error);
-                    }
+                    return null;
                 });
-            } catch (Exception e) {
-                log.error("流式对话异常", e);
-                sender.fail(e);
-            }
-        }, chatStreamExecutor);
+
     }
 
     /**
@@ -134,6 +134,19 @@ public class ChatServiceImpl implements ChatService {
         } catch (Exception e) {
             log.warn("标题生成失败，保持原截取标题", e);
         }
+    }
+
+    /**
+     * 链式传递的上下文对象
+     */
+    @RequiredArgsConstructor
+    private static class ChatContext {
+        final ChatMessage userMsg;
+        final List<ChatMessage> history;
+        final boolean historyEmpty;
+        final String actualSessionId;
+        String searchQuery;
+        String ragContext;
     }
 
 }
