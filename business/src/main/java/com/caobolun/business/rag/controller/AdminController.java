@@ -1,15 +1,16 @@
 package com.caobolun.business.rag.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.caobolun.business.rag.dao.entity.DocumentDO;
+import com.caobolun.business.rag.dao.mapper.DocumentMapper;
 import com.caobolun.business.rag.dto.response.UploadFileResponse;
 import com.caobolun.business.rag.service.UploadFileService;
 import com.caobolun.framework.convention.Result;
 import com.caobolun.framework.exception.ClientException;
 import com.caobolun.framework.web.Results;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
@@ -20,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class AdminController {
 
     private final UploadFileService uploadFileService;
+    private final DocumentMapper documentMapper;
 
     /**
      * 上传文档并执行分片索引
@@ -46,5 +48,25 @@ public class AdminController {
         UploadFileResponse result = uploadFileService.upload(file, chunkSize, overlap);
 
         return Results.success(result);
+    }
+
+    @GetMapping("/api/v1/admin/document/status/{docId}")
+    public Result<UploadFileResponse> getDocumentStatus(@PathVariable String docId) {
+        StpUtil.checkRole("admin");
+
+        DocumentDO doc = documentMapper.selectOne(
+                new LambdaQueryWrapper<DocumentDO>()
+                        .eq(DocumentDO::getDocId, docId));
+        if (doc == null) {
+            throw new ClientException("文档不存在");
+        }
+
+        return Results.success(UploadFileResponse.builder()
+                .docId(doc.getDocId())
+                .fileName(doc.getFileName())
+                .chunkCount(doc.getChunkCount() != null ? doc.getChunkCount() : 0)
+                .status(doc.getStatus())
+                .errorMessage(doc.getErrorMessage())
+                .build());
     }
 }

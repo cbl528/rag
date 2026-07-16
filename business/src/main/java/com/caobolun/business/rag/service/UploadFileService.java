@@ -41,7 +41,6 @@ public class UploadFileService {
      * @param overlap   分片重叠，null 则使用默认值 128
      * @return 上传结果
      */
-    @Transactional
     public UploadFileResponse upload(MultipartFile file, Integer chunkSize, Integer overlap) {
         int actualChunkSize = chunkSize != null ? chunkSize : DEFAULT_CHUNK_SIZE;
         int actualOverlap = overlap != null ? overlap : DEFAULT_CHUNK_OVERLAP;
@@ -74,14 +73,13 @@ public class UploadFileService {
                 doc.setStatus("indexed");
                 documentMapper.updateById(doc);
 
-                log.info("Document uploaded successfully: docId={}, fileName={}, chunks={}",
+                log.info("文档上传成功: docId={}, fileName={}, chunks={}",
                         docId, file.getOriginalFilename(), chunkCount);
             } catch (Exception e) {
                 doc.setStatus("failed");
                 doc.setErrorMessage(e.getMessage());
                 documentMapper.updateById(doc);
-                log.error("Document indexing failed: docId={}, fileName={}", docId, file.getOriginalFilename(), e);
-                throw new ServiceException("文档索引失败: " + e.getMessage());
+                log.error("文档索引化失败: docId={}, fileName={}", docId, file.getOriginalFilename(), e);
             }
         }, documentIndexExecutor);
 
