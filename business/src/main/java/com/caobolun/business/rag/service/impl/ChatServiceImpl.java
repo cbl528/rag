@@ -48,6 +48,12 @@ public class ChatServiceImpl implements ChatService {
                 // 1. 加载历史 + 保存用户信息
                 .supplyAsync(() -> {
                     List<ChatMessage> history = memoryService.loadAndAppend(actualSessionId, userMsg);
+                    // ★ 新会话 → 立刻异步生成标题（与主链路并行，不等回答）
+                    if (history.isEmpty()) {
+                        CompletableFuture.runAsync(
+                                () -> generateTitleFromQuestion(actualSessionId, userMessage),
+                                asyncTaskExecutor);
+                    }
                     return new ChatContext(userMsg, history, history.isEmpty(), actualSessionId);
                 }, chatStreamExecutor)
                 // 2. 执行查询改写
@@ -87,14 +93,6 @@ public class ChatServiceImpl implements ChatService {
                                     ChatMessage.assistant(fullAnswer.toString()));
                             sender.sendEvent("done", "[DONE]");
                             sender.complete();
-
-                            // 标题生成 → fire-and-forget
-                            if (ctx.historyEmpty) {
-                                CompletableFuture.runAsync(
-                                        () -> generateAndUpdateTitle(ctx.actualSessionId,
-                                                userMessage, fullAnswer.toString()),
-                                        asyncTaskExecutor);
-                            }
                         }
 
                         @Override
@@ -117,21 +115,22 @@ public class ChatServiceImpl implements ChatService {
     }
 
     /**
-     * 标题生成：抽成独立方法，方便异步调用
+     * 仅根据用户问题生成标题（不等回答，与主流程并行）
      */
-    private void generateAndUpdateTitle(String sessionId,
-                                        String userMessage, String assistantMessage) {
+    private void generateTitleFromQuestion(String sessionId, String userQuestion) {
         try {
             String title = openAICompatibleClient.chat(List.of(
-                    ChatMessage.system("你是一个对话标题生成助手。请根据用户的问题和助手的回答，生成一个简短（不超过20字）的对话标题，不要加引号，直接输出。"),
-                    ChatMessage.user(userMessage),
-                    ChatMessage.assistant(assistantMessage)
+                    ChatMessage.system("你是一个对话标题生成助手。"
+                            + "请根据用户的问题，生成一个简短（不超过20字）的对话标题，"
+                            + "不要加引号，直接输出。"),
+                    ChatMessage.user(userQuestion)
             ));
             if (StrUtil.isNotBlank(title)) {
                 memoryService.updateTitle(sessionId, title.trim());
+                log.info("标题生成成功: sessionId={}, title={}", sessionId, title);
             }
         } catch (Exception e) {
-            log.warn("标题生成失败，保持原截取标题", e);
+            log.warn("标题生成失败，保持原截取标题: sessionId={}", sessionId, e);
         }
     }
 
