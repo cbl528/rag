@@ -14,6 +14,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 /**
  * 管理端文档上传服务
@@ -25,9 +27,11 @@ public class UploadFileService {
 
     private final DocumentMapper documentMapper;
     private final DocumentService documentService;
+    private final Executor documentIndexExecutor;
 
     private static final int DEFAULT_CHUNK_SIZE = 512;
     private static final int DEFAULT_CHUNK_OVERLAP = 128;
+
 
     /**
      * 上传文档：读取文件 → 保存记录 → 分片索引
@@ -58,31 +62,36 @@ public class UploadFileService {
         doc.setStatus("uploading");
         documentMapper.insert(doc);
 
-        try {
-            // 3. 调用 DocumentService 进行分片、向量化并存储
-            documentService.indexDocument(docId, text, actualChunkSize, actualOverlap);
+        // 异步执行文档索引化任务
+        CompletableFuture.runAsync(() -> {
+            try {
+                // 3. 调用 DocumentService 进行分片、向量化并存储
+                documentService.indexDocument(docId, text, actualChunkSize, actualOverlap);
 
-            // 4. 获取分片数并更新文档状态
-            int chunkCount = documentService.getChunkCount(docId);
-            doc.setChunkCount(chunkCount);
-            doc.setStatus("indexed");
-            documentMapper.updateById(doc);
+                // 4. 获取分片数并更新文档状态
+                int chunkCount = documentService.getChunkCount(docId);
+                doc.setChunkCount(chunkCount);
+                doc.setStatus("indexed");
+                documentMapper.updateById(doc);
 
-            log.info("Document uploaded successfully: docId={}, fileName={}, chunks={}",
-                    docId, file.getOriginalFilename(), chunkCount);
+                log.info("Document uploaded successfully: docId={}, fileName={}, chunks={}",
+                        docId, file.getOriginalFilename(), chunkCount);
+            } catch (Exception e) {
+                doc.setStatus("failed");
+                doc.setErrorMessage(e.getMessage());
+                documentMapper.updateById(doc);
+                log.error("Document indexing failed: docId={}, fileName={}", docId, file.getOriginalFilename(), e);
+                throw new ServiceException("文档索引失败: " + e.getMessage());
+            }
+        }, documentIndexExecutor);
 
-            return UploadFileResponse.builder()
-                    .docId(docId)
-                    .fileName(file.getOriginalFilename())
-                    .chunkCount(chunkCount)
-                    .build();
-        } catch (Exception e) {
-            doc.setStatus("failed");
-            doc.setErrorMessage(e.getMessage());
-            documentMapper.updateById(doc);
-            log.error("Document indexing failed: docId={}, fileName={}", docId, file.getOriginalFilename(), e);
-            throw new ServiceException("文档索引失败: " + e.getMessage());
-        }
+        // 立即返回结果
+        return UploadFileResponse.builder()
+                .docId(docId)
+                .fileName(file.getOriginalFilename())
+                .chunkCount(0)
+                .status("uploading")
+                .build();
     }
 
     /**

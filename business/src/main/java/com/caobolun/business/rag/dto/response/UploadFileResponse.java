@@ -18,5 +18,9 @@ public class UploadFileResponse {
 
     private String fileName;
 
-    private int chunkCount;
+    private int chunkCount; // 分块数量
+
+    private String status; // 文件状态 uploading/indexed/fail
+
+    private String errorMessage; // 失败原因
 }
