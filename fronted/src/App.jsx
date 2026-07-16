@@ -5,6 +5,7 @@ import { http } from './utils/http'
 import Sidebar from './components/Sidebar'
 import Navbar from './components/Navbar'
 import ChatArea from './components/ChatArea'
+import ConfirmDialog from './components/ConfirmDialog'
 import LoginPage from './pages/LoginPage'
 import AdminLayout from './pages/admin/AdminLayout'
 import UploadDoc from './pages/admin/UploadDoc'
@@ -40,6 +41,12 @@ function MainLayout() {
   const [messages, setMessages] = useState([])
   const [isTyping, setIsTyping] = useState(false)
   const eventSourceRef = useRef(null)
+
+  // 重命名弹窗（Sidebar 和 Navbar 共用）
+  const [renameTarget, setRenameTarget] = useState(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [renaming, setRenaming] = useState(false)
+  const renameInputRef = useRef(null)
 
   // ---------- API 调用 ----------
 
@@ -191,6 +198,27 @@ function MainLayout() {
     setMessages([])
   }, [])
 
+  // —— 重命名（Sidebar / Navbar 共用） ——
+  const openRename = useCallback((id, currentTitle) => {
+    setRenameTarget(id)
+    setRenameValue(currentTitle || '')
+  }, [])
+
+  const handleRenameConfirm = async () => {
+    if (!renameTarget || !renameValue.trim()) return
+    setRenaming(true)
+    try {
+      await http.put(`/api/v1/conversation/${renameTarget}?title=${encodeURIComponent(renameValue.trim())}`)
+      setRenameTarget(null)
+      setRenameValue('')
+      fetchConversations()
+    } catch (e) {
+      console.error('重命名失败', e)
+    } finally {
+      setRenaming(false)
+    }
+  }
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white dark:bg-[#141414]">
       <Sidebar
@@ -202,6 +230,7 @@ function MainLayout() {
         onToggleSidebar={() => setSidebarCollapsed((v) => !v)}
         onLogout={handleLogout}
         onRefreshConversations={fetchConversations}
+        onOpenRename={openRename}
       />
 
       <main className="flex-1 flex flex-col min-w-0">
@@ -211,6 +240,8 @@ function MainLayout() {
           onToggleSidebar={() => setSidebarCollapsed(false)}
           darkMode={darkMode}
           onToggleDark={toggleDarkMode}
+          currentId={currentId}
+          onOpenRename={openRename}
         />
         <ChatArea
           currentId={currentId}
@@ -221,6 +252,38 @@ function MainLayout() {
           onSelectSuggestion={sendMessage}
         />
       </main>
+
+      {/* ====== 重命名弹窗（Sidebar + Navbar 共用） ====== */}
+      <ConfirmDialog
+        open={!!renameTarget}
+        title="重命名对话"
+        confirmLabel="保存"
+        loading={renaming}
+        onConfirm={handleRenameConfirm}
+        onCancel={() => { setRenameTarget(null); setRenameValue('') }}
+      >
+        <input
+          ref={renameInputRef}
+          type="text"
+          value={renameValue}
+          onChange={(e) => setRenameValue(e.target.value)}
+          placeholder="输入新名称"
+          maxLength={20}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleRenameConfirm()
+          }}
+          className="w-full px-4 py-2.5 text-[15px] rounded-xl
+            bg-white dark:bg-[#1c1c1e]
+            text-[#1d1d1f] dark:text-[#f5f5f7]
+            placeholder:text-[#aeaeb2] dark:placeholder:text-[#636366]
+            border border-[#e5e5e5] dark:border-[#333]
+            focus:outline-none focus:border-[#1d1d1f] dark:focus:border-[#f5f5f7]
+            transition-colors duration-200"
+        />
+        <div className="text-right mt-1.5 text-[12px] text-[#aeaeb2] dark:text-[#636366]">
+          {renameValue.length}/20
+        </div>
+      </ConfirmDialog>
     </div>
   )
 }

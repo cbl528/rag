@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, MessageSquare, LogIn, LogOut, User, PanelLeft, MoreHorizontal, Trash2, Pencil } from 'lucide-react'
+import { Plus, MessageSquare, LogIn, User, PanelLeft, MoreHorizontal, Trash2, PencilLine } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { http } from '../utils/http'
 import ConfirmDialog from './ConfirmDialog'
@@ -29,6 +29,7 @@ export default function Sidebar({
   onToggleSidebar,
   onLogout,
   onRefreshConversations,
+  onOpenRename,
 }) {
   const groups = useMemo(() => groupByDate(conversations), [conversations])
   const { user, isLoggedIn } = useAuth()
@@ -41,12 +42,6 @@ export default function Sidebar({
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
-  // 重命名弹窗
-  const [renameTarget, setRenameTarget] = useState(null)
-  const [renameValue, setRenameValue] = useState('')
-  const [renaming, setRenaming] = useState(false)
-  const renameInputRef = useRef(null)
-
   // 点击外部关闭菜单
   useEffect(() => {
     if (!menuOpenId) return
@@ -58,14 +53,6 @@ export default function Sidebar({
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [menuOpenId])
-
-  // 打开重命名弹窗时自动聚焦并选中文本
-  useEffect(() => {
-    if (renameTarget && renameInputRef.current) {
-      renameInputRef.current.focus()
-      renameInputRef.current.select()
-    }
-  }, [renameTarget])
 
   // —— 删除 ——
   const handleDeleteConfirm = async () => {
@@ -82,29 +69,6 @@ export default function Sidebar({
       setDeleting(false)
       setMenuOpenId(null)
     }
-  }
-
-  // —— 重命名 ——
-  const handleRenameConfirm = async () => {
-    if (!renameTarget || !renameValue.trim()) return
-    setRenaming(true)
-    try {
-      await http.put(`/api/v1/conversation/${renameTarget}?title=${encodeURIComponent(renameValue.trim())}`)
-      setRenameTarget(null)
-      setRenameValue('')
-      onRefreshConversations?.()
-    } catch (e) {
-      console.error('重命名失败', e)
-    } finally {
-      setRenaming(false)
-      setMenuOpenId(null)
-    }
-  }
-
-  const openRename = (conv) => {
-    setRenameValue(conv.title || '')
-    setRenameTarget(conv.id)
-    setMenuOpenId(null)
   }
 
   const openDelete = (convId) => {
@@ -232,10 +196,11 @@ export default function Sidebar({
                               transition-colors duration-100"
                             onClick={(e) => {
                               e.stopPropagation()
-                              openRename(conv)
+                              setMenuOpenId(null)
+                              onOpenRename(conv.id, conv.title)
                             }}
                           >
-                            <Pencil size={14} className="text-gray-400" />
+                            <PencilLine size={14} className="text-gray-400" />
                             重命名
                           </button>
 
@@ -280,7 +245,7 @@ export default function Sidebar({
                 className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
                 title="退出登录"
               >
-                <LogOut size={14} />
+                <LogIn size={14} />
               </button>
             </div>
           ) : (
@@ -309,33 +274,6 @@ export default function Sidebar({
         onCancel={() => { setDeleteTarget(null); setMenuOpenId(null) }}
       />
 
-      {/* ====== 重命名弹窗 ====== */}
-      <ConfirmDialog
-        open={!!renameTarget}
-        title="重命名对话"
-        confirmLabel="保存"
-        loading={renaming}
-        onConfirm={handleRenameConfirm}
-        onCancel={() => { setRenameTarget(null); setRenameValue(''); setMenuOpenId(null) }}
-      >
-        <input
-          ref={renameInputRef}
-          type="text"
-          value={renameValue}
-          onChange={(e) => setRenameValue(e.target.value)}
-          placeholder="输入新名称"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleRenameConfirm()
-          }}
-          className="w-full px-4 py-2.5 text-[15px] rounded-xl
-            bg-white dark:bg-[#1c1c1e]
-            text-[#1d1d1f] dark:text-[#f5f5f7]
-            placeholder:text-[#aeaeb2] dark:placeholder:text-[#636366]
-            border border-[#e5e5e5] dark:border-[#333]
-            focus:outline-none focus:border-[#1d1d1f] dark:focus:border-[#f5f5f7]
-            transition-colors duration-200"
-        />
-      </ConfirmDialog>
     </aside>
   )
 }

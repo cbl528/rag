@@ -1,8 +1,8 @@
-import { PanelLeft, Sun, Moon } from 'lucide-react'
+import { PanelLeft, Sun, Moon, PencilLine } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-export default function Navbar({ title, sidebarCollapsed, onToggleSidebar, darkMode, onToggleDark }) {
+export default function Navbar({ title, sidebarCollapsed, onToggleSidebar, darkMode, onToggleDark, currentId, onOpenRename }) {
   const { user } = useAuth()
   const navigate = useNavigate()
   const isAdmin = user?.role === 'admin'
@@ -14,8 +14,8 @@ export default function Navbar({ title, sidebarCollapsed, onToggleSidebar, darkM
         border-b border-[#e5e5e5] dark:border-[#222]
         transition-colors duration-200 select-none"
     >
-      {/* 左侧 — 侧边栏切换 */}
-      <div className="w-[100px] flex items-center">
+      {/* 左侧 — 侧边栏切换 + 重命名 */}
+      <div className="w-[100px] flex items-center gap-0.5">
         {sidebarCollapsed && (
           <button
             onClick={onToggleSidebar}
@@ -23,6 +23,15 @@ export default function Navbar({ title, sidebarCollapsed, onToggleSidebar, darkM
             title="展开侧边栏"
           >
             <PanelLeft size={18} className="text-gray-500 dark:text-gray-400" />
+          </button>
+        )}
+        {currentId && title && (
+          <button
+            onClick={() => onOpenRename(currentId, title)}
+            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+            title="重命名对话"
+          >
+            <PencilLine size={15} className="text-gray-500 dark:text-gray-400" />
           </button>
         )}
       </div>
