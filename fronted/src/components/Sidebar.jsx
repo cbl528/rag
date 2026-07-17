@@ -245,11 +245,15 @@ export default function Sidebar({
                   transition-colors duration-150"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#1d1d1f] to-[#555] dark:from-[#f5f5f7] dark:to-[#999] flex items-center justify-center shrink-0">
-                    <span className="text-[10px] font-semibold text-white dark:text-[#1d1d1f]">
-                      {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
-                    </span>
-                  </div>
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt="" className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-[#e5e5e5] dark:ring-[#333]" />
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#1d1d1f] to-[#555] dark:from-[#f5f5f7] dark:to-[#999] flex items-center justify-center shrink-0">
+                      <span className="text-[10px] font-semibold text-white dark:text-[#1d1d1f]">
+                        {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
+                      </span>
+                    </div>
+                  )}
                   <span className="truncate text-[var(--color-text-primary)] dark:text-[var(--color-text-primary-dark)]">
                     {user?.nickname || user?.username || '用户'}
                   </span>

@@ -4,6 +4,7 @@ import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.SetBucketPolicyArgs;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,9 +45,17 @@ public class MinioService {
             if (!exists) {
                 client.makeBucket(MakeBucketArgs.builder().bucket(BUCKET_AVATAR).build());
                 log.info("MinIO bucket [{}] 已创建", BUCKET_AVATAR);
-            } else {
-                log.info("MinIO bucket [{}] 已存在，跳过创建", BUCKET_AVATAR);
             }
+
+            // 设置公开读策略，让头像 URL 可直接访问
+            String policy = String.format(
+                "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"AWS\":[\"*\"]},\"Action\":[\"s3:GetObject\"],\"Resource\":[\"arn:aws:s3:::%s/*\"]}]}",
+                BUCKET_AVATAR);
+            client.setBucketPolicy(SetBucketPolicyArgs.builder()
+                    .bucket(BUCKET_AVATAR)
+                    .config(policy)
+                    .build());
+            log.info("MinIO bucket [{}] 已设置为公开读", BUCKET_AVATAR);
 
             log.info("MinIO 服务初始化完成, endpoint={}", endpoint);
         } catch (Exception e) {
