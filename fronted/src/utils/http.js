@@ -86,7 +86,19 @@ async function request(url, options = {}) {
  */
 export const http = {
   get(url, options) {
-    return request(url, { ...options, method: 'GET' })
+    const { query, ...rest } = options || {}
+    let finalUrl = url
+    if (query) {
+      const params = new URLSearchParams()
+      Object.entries(query).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') {
+          params.set(k, v)
+        }
+      })
+      const qs = params.toString()
+      if (qs) finalUrl = `${url}?${qs}`
+    }
+    return request(finalUrl, { ...rest, method: 'GET' })
   },
 
   post(url, data, options) {

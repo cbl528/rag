@@ -49,4 +49,12 @@ public class ConversationController {
     public Result<List<ConversationMessageVO>> listMessages(@PathVariable String sessionId) {
         return Results.success(conversationService.listMessages(sessionId));
     }
+
+    /**
+     * 根据标题搜索对话
+     */
+    @GetMapping("/api/v1/conversation/search/{keyWord}")
+    public Result<List<ConversationVO>> searchConversation(@PathVariable String keyWord){
+        return Results.success(conversationService.searchConversation(keyWord));
+    }
 }

@@ -2,6 +2,7 @@ package com.caobolun.business.rag.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.caobolun.business.rag.dao.entity.ChatMessageDO;
 import com.caobolun.business.rag.dao.entity.ChatSessionDO;
 import com.caobolun.business.rag.dao.mapper.ChatMessageMapper;
@@ -90,6 +91,22 @@ public class ConversationServiceImpl implements ConversationService {
         );
         return records.stream()
                 .map(this::toConversationMessageVO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ConversationVO> searchConversation(String keyWord) {
+        if (StrUtil.isBlank(keyWord)) {
+            return listSessions();
+        }
+        List<ChatSessionDO> records = chatSessionMapper.selectList(
+                new LambdaQueryWrapper<ChatSessionDO>()
+                        .eq(ChatSessionDO::getUserId, UserContext.getUserId())
+                        .like(ChatSessionDO::getTitle, keyWord)
+                        .orderByDesc(ChatSessionDO::getLastTime)
+        );
+        return records.stream()
+                .map(this::toConversationVO)
                 .collect(Collectors.toList());
     }
 

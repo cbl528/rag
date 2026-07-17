@@ -26,4 +26,6 @@ public interface ConversationService {
        * 获取会话的消息列表（按时间正序）
        */
       List<ConversationMessageVO> listMessages(String sessionId);
-  }
+
+      List<ConversationVO> searchConversation(String keyWord);
+}

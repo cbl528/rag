@@ -1,6 +1,6 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, MessageCircleMore, LogIn, User, PanelLeft, MoreHorizontal, Trash2, PencilLine, Settings, LogOut } from 'lucide-react'
+import { Plus, MessageCircleMore, LogIn, User, PanelLeft, MoreHorizontal, Trash2, PencilLine, Settings, LogOut, Search, X } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { http } from '../utils/http'
 import ConfirmDialog from './ConfirmDialog'
@@ -32,9 +32,58 @@ export default function Sidebar({
   onOpenRename,
   onOpenProfile,
 }) {
-  const groups = useMemo(() => groupByDate(conversations), [conversations])
   const { user, isLoggedIn } = useAuth()
   const navigate = useNavigate()
+
+  // 搜索
+  const [searchKeyword, setSearchKeyword] = useState('')
+  const [searchResults, setSearchResults] = useState(null)
+  const [isSearching, setIsSearching] = useState(false)
+  const searchTimerRef = useRef(null)
+
+  const doSearch = useCallback(async (keyword) => {
+    if (!keyword.trim()) {
+      setSearchResults(null)
+      return
+    }
+    setIsSearching(true)
+    try {
+      const data = await http.get(`/api/v1/conversation/search/${encodeURIComponent(keyword.trim())}`)
+      setSearchResults((data || []).map((item) => ({
+        id: item.sessionId,
+        title: item.title,
+        createdAt: item.createTime,
+        lastTime: item.lastTime,
+      })))
+    } catch {
+      setSearchResults([])
+    } finally {
+      setIsSearching(false)
+    }
+  }, [])
+
+  const handleSearchChange = (value) => {
+    setSearchKeyword(value)
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    searchTimerRef.current = setTimeout(() => doSearch(value), 300)
+  }
+
+  const clearSearch = () => {
+    setSearchKeyword('')
+    setSearchResults(null)
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+  }
+
+  // 组件卸载时清理定时器
+  useEffect(() => {
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    }
+  }, [])
+
+  // 搜索时显示搜索结果，否则显示传入的会话列表
+  const displayConvs = searchResults !== null ? searchResults : conversations
+  const groups = useMemo(() => groupByDate(displayConvs), [displayConvs])
 
   const [hoveredId, setHoveredId] = useState(null)
   const [menuOpenId, setMenuOpenId] = useState(null)
@@ -109,6 +158,38 @@ export default function Sidebar({
           >
             <PanelLeft size={16} className="text-gray-400" />
           </button>
+        </div>
+
+        {/* 搜索框 */}
+        <div className="px-3 pt-3">
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#aeaeb2] dark:text-[#636366] pointer-events-none" />
+            <input
+              type="text"
+              value={searchKeyword}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="搜索历史对话..."
+              className="w-full pl-9 pr-8 py-2.5 rounded-xl text-[14px]
+                bg-white dark:bg-[#1c1c1c]
+                text-[var(--color-text-primary)] dark:text-[var(--color-text-primary-dark)]
+                placeholder:text-[#aeaeb2] dark:placeholder:text-[#636366]
+                border border-transparent
+                focus:outline-none focus:border-[#1d1d1f] dark:focus:border-[#f5f5f7]
+                transition-colors duration-200"
+            />
+            {/* 清除按钮 */}
+            {searchKeyword && (
+              <button
+                onClick={clearSearch}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded
+                  text-[#aeaeb2] dark:text-[#636366]
+                  hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7]
+                  transition-colors"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* 新对话 */}

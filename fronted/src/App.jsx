@@ -9,7 +9,9 @@ import ConfirmDialog from './components/ConfirmDialog'
 import ProfileDialog from './components/ProfileDialog'
 import LoginPage from './pages/LoginPage'
 import AdminLayout from './pages/admin/AdminLayout'
+import AdminHome from './pages/admin/AdminHome'
 import UploadDoc from './pages/admin/UploadDoc'
+import UserManage from './pages/admin/UserManage'
 
 // ---------- 路由守卫 ----------
 function ProtectedRoute({ children }) {
@@ -310,8 +312,10 @@ export default function App() {
             <ProtectedRoute>
               <AdminLayout>
                 <Routes>
+                  <Route index element={<AdminHome />} />
                   <Route path="upload" element={<UploadDoc />} />
-                  <Route path="*" element={<Navigate to="upload" replace />} />
+                  <Route path="users" element={<UserManage />} />
+                  <Route path="*" element={<Navigate to="/admin" replace />} />
                 </Routes>
               </AdminLayout>
             </ProtectedRoute>
