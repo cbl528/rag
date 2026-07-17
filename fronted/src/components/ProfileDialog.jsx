@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, User, Check, KeyRound, LogOut, PencilLine, EyeOff, Eye, Loader2 } from 'lucide-react'
+import { X, User, Check, KeyRound, LogOut, PencilLine, EyeOff, Eye, Loader2, Camera } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { http } from '../utils/http'
@@ -24,6 +24,12 @@ export default function ProfileDialog({ open, onClose }) {
   const [showConfirmPwd, setShowConfirmPwd] = useState(false)
   const [changingPassword, setChangingPassword] = useState(false)
   const [passwordMessage, setPasswordMessage] = useState(null)
+
+  // —— 头像上传 ——
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState(null)
+  const [avatarMessage, setAvatarMessage] = useState(null)
+  const fileInputRef = useRef(null)
 
   // —— 切换账户 ——
   const [switching, setSwitching] = useState(false)
@@ -134,6 +140,46 @@ export default function ProfileDialog({ open, onClose }) {
     navigate('/login', { replace: true })
   }
 
+  // —— 头像上传 ——
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // 本地预览
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      setAvatarPreview(event.target.result)
+    }
+    reader.readAsDataURL(file)
+
+    // 上传到服务端
+    setUploadingAvatar(true)
+    setAvatarMessage(null)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      await http.upload('/api/v1/users/avatar', formData)
+      await refreshUser()
+      setAvatarPreview(null) // 清除预览，切换到服务端图片
+      setAvatarMessage({ type: 'success', text: '头像已更新' })
+    } catch (err) {
+      setAvatarPreview(null)
+      setAvatarMessage({ type: 'error', text: err.message || '上传失败' })
+    } finally {
+      setUploadingAvatar(false)
+      // 清空 input 以便重复选择同一文件
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  // 重置头像状态
+  useEffect(() => {
+    if (open) {
+      setAvatarPreview(null)
+      setAvatarMessage(null)
+    }
+  }, [open])
+
   // —— 获取头像首字母 ——
   const getInitial = () => {
     const name = user?.username || 'U'
@@ -177,25 +223,78 @@ export default function ProfileDialog({ open, onClose }) {
         {/* ======== 用户信息头部 ======== */}
         <div className="flex flex-col items-center pt-10 pb-6 px-6">
           {/* 头像 */}
-          <div className="relative mb-4">
-            {user?.avatar ? (
-              <img
-                src={user.avatar}
-                alt="avatar"
-                className="w-20 h-20 rounded-full object-cover ring-2 ring-[#e5e5e5] dark:ring-[#333]"
-              />
-            ) : (
+          <div className="relative mb-4 group">
+            {/* 隐藏的文件输入 */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="block focus:outline-none disabled:opacity-60"
+            >
+              {avatarPreview ? (
+                <img
+                  src={avatarPreview}
+                  alt="avatar preview"
+                  className="w-20 h-20 rounded-full object-cover ring-2 ring-[#e5e5e5] dark:ring-[#333]"
+                />
+              ) : user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt="avatar"
+                  className="w-20 h-20 rounded-full object-cover ring-2 ring-[#e5e5e5] dark:ring-[#333]"
+                />
+              ) : (
+                <div
+                  className="w-20 h-20 rounded-full flex items-center justify-center
+                    bg-gradient-to-br from-[#1d1d1f] to-[#555] dark:from-[#f5f5f7] dark:to-[#999]
+                    ring-2 ring-[#e5e5e5] dark:ring-[#333]"
+                >
+                  <span className="text-[32px] font-semibold text-white dark:text-[#1d1d1f] select-none">
+                    {getInitial()}
+                  </span>
+                </div>
+              )}
+
+              {/* 悬浮遮罩 */}
+              {!uploadingAvatar && (
+                <div
+                  className="absolute inset-0 rounded-full flex items-center justify-center
+                    bg-black/40 opacity-0 group-hover:opacity-100
+                    transition-opacity duration-200 cursor-pointer"
+                >
+                  <Camera size={22} className="text-white" />
+                </div>
+              )}
+            </button>
+
+            {/* 上传中 spinner */}
+            {uploadingAvatar && (
               <div
-                className="w-20 h-20 rounded-full flex items-center justify-center
-                  bg-gradient-to-br from-[#1d1d1f] to-[#555] dark:from-[#f5f5f7] dark:to-[#999]
-                  ring-2 ring-[#e5e5e5] dark:ring-[#333]"
+                className="absolute inset-0 rounded-full flex items-center justify-center
+                  bg-black/40"
               >
-                <span className="text-[32px] font-semibold text-white dark:text-[#1d1d1f] select-none">
-                  {getInitial()}
-                </span>
+                <Loader2 size={22} className="text-white animate-spin" />
               </div>
             )}
           </div>
+
+          {/* 头像上传反馈 */}
+          {avatarMessage && (
+            <p className={`text-[12px] mb-2 ${
+              avatarMessage.type === 'success'
+                ? 'text-green-600 dark:text-green-400'
+                : 'text-red-500 dark:text-red-400'
+            }`}>
+              {avatarMessage.text}
+            </p>
+          )}
 
           {/* 用户名 */}
           <h2 className="text-[17px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">

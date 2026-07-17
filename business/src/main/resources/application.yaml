@@ -12,11 +12,12 @@ spring:
 # 生产环境需要填写 endpoint/accessKey/secretKey/bucket，
 # 敏感配置请在 application-dev.yaml 中覆盖。
 minio:
-  endpoint: http://localhost:9000
+  endpoint: http://124.221.110.104:9000
   access-key: minioadmin
   secret-key: minioadmin
-  bucket: rag-storage
-  # 文件访问地址前缀（用于生成可访问的 URL）
-  external-url: http://localhost:9000/rag-storage
+
+# ===== 本地文件上传路径（头像等） =====
+upload:
+  local-path: ./uploads
 
 
