@@ -44,4 +44,6 @@ public class AuthController {
         authService.updatePassword(request);
         return Results.success();
     }
+
+
 }

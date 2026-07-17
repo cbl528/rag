@@ -1,4 +1,4 @@
-package com.caobolun.business.storage;
+package com.caobolun.business.user.service;
 
 import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
