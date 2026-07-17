@@ -2,11 +2,12 @@ package com.caobolun.business.user.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.crypto.digest.BCrypt;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.caobolun.business.user.dao.entity.UserDO;
 import com.caobolun.business.user.dao.mapper.UserMapper;
 import com.caobolun.business.user.dto.request.LoginDTO;
+import com.caobolun.business.user.dto.request.PasswordUpdateDTO;
+import com.caobolun.business.user.dto.request.ProfileUpdateDTO;
 import com.caobolun.business.user.dto.response.LoginVO;
 import com.caobolun.business.user.dto.response.UserInfoVO;
 import com.caobolun.business.user.service.AuthService;
@@ -49,6 +50,7 @@ public class AuthServiceImpl implements AuthService {
                 .token(token)
                 .userId(user.getUserId())
                 .username(user.getUsername())
+                .nickname(user.getNickname())
                 .role(user.getRole())
                 .avatar(user.getAvatar())
                 .build();
@@ -61,6 +63,37 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public UserInfoVO me() {
+        UserDO user = getCurrentUser();
+        return toUserInfoVO(user);
+    }
+
+    @Override
+    public void updateProfile(ProfileUpdateDTO request) {
+        UserDO user = getCurrentUser();
+        if (StrUtil.isNotBlank(request.getNickname())) {
+            user.setNickname(request.getNickname());
+        }
+        if (request.getAvatar() != null) {
+            user.setAvatar(request.getAvatar());
+        }
+        userMapper.updateById(user);
+    }
+
+    @Override
+    public void updatePassword(PasswordUpdateDTO request) {
+        if (StrUtil.isBlank(request.getOldPassword()) || StrUtil.isBlank(request.getNewPassword())) {
+            throw new ClientException("旧密码和新密码不能为空");
+        }
+        UserDO user = getCurrentUser();
+        // todo: 密码暂时不加密
+        if (!StrUtil.equals(request.getOldPassword(), user.getPassword())) {
+            throw new ClientException("旧密码错误");
+        }
+        user.setPassword(request.getNewPassword());
+        userMapper.updateById(user);
+    }
+
+    private UserDO getCurrentUser() {
         String userId = StpUtil.getLoginIdAsString();
         UserDO user = userMapper.selectOne(
                 new LambdaQueryWrapper<UserDO>()
@@ -69,6 +102,10 @@ public class AuthServiceImpl implements AuthService {
         if (user == null) {
             throw new ClientException("用户不存在");
         }
+        return user;
+    }
+
+    private UserInfoVO toUserInfoVO(UserDO user) {
         return UserInfoVO.builder()
                 .userId(user.getUserId())
                 .username(user.getUsername())

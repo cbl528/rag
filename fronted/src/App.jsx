@@ -6,6 +6,7 @@ import Sidebar from './components/Sidebar'
 import Navbar from './components/Navbar'
 import ChatArea from './components/ChatArea'
 import ConfirmDialog from './components/ConfirmDialog'
+import ProfileDialog from './components/ProfileDialog'
 import LoginPage from './pages/LoginPage'
 import AdminLayout from './pages/admin/AdminLayout'
 import UploadDoc from './pages/admin/UploadDoc'
@@ -47,6 +48,9 @@ function MainLayout() {
   const [renameValue, setRenameValue] = useState('')
   const [renaming, setRenaming] = useState(false)
   const renameInputRef = useRef(null)
+
+  // 个人中心弹窗
+  const [showProfile, setShowProfile] = useState(false)
 
   // ---------- API 调用 ----------
 
@@ -231,6 +235,7 @@ function MainLayout() {
         onLogout={handleLogout}
         onRefreshConversations={fetchConversations}
         onOpenRename={openRename}
+        onOpenProfile={() => setShowProfile(true)}
       />
 
       <main className="flex-1 flex flex-col min-w-0">
@@ -284,6 +289,12 @@ function MainLayout() {
           {renameValue.length}/20
         </div>
       </ConfirmDialog>
+
+      {/* ====== 个人中心弹窗 ====== */}
+      <ProfileDialog
+        open={showProfile}
+        onClose={() => setShowProfile(false)}
+      />
     </div>
   )
 }

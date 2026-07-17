@@ -1,6 +1,8 @@
 package com.caobolun.business.user.controller;
 
 import com.caobolun.business.user.dto.request.LoginDTO;
+import com.caobolun.business.user.dto.request.PasswordUpdateDTO;
+import com.caobolun.business.user.dto.request.ProfileUpdateDTO;
 import com.caobolun.business.user.dto.response.LoginVO;
 import com.caobolun.business.user.dto.response.UserInfoVO;
 import com.caobolun.business.user.service.AuthService;
@@ -29,5 +31,17 @@ public class AuthController {
     @GetMapping("/api/v1/auth/me")
     public Result<UserInfoVO> me() {
         return Results.success(authService.me());
+    }
+
+    @PutMapping("/api/v1/auth/profile")
+    public Result<Void> updateProfile(@RequestBody ProfileUpdateDTO request) {
+        authService.updateProfile(request);
+        return Results.success();
+    }
+
+    @PutMapping("/api/v1/auth/password")
+    public Result<Void> updatePassword(@RequestBody PasswordUpdateDTO request) {
+        authService.updatePassword(request);
+        return Results.success();
     }
 }

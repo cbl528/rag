@@ -51,11 +51,26 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const userInfo = await http.get('/api/v1/auth/me')
+      setUser((prev) => {
+        const updated = { ...prev, ...userInfo }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+        return updated
+      })
+      return userInfo
+    } catch {
+      return null
+    }
+  }, [])
+
   const value = {
     user,
     loading,
     login,
     logout,
+    refreshUser,
     isLoggedIn: !!user,
   }
 

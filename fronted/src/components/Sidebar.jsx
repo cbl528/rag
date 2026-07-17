@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, MessageSquare, LogIn, User, PanelLeft, MoreHorizontal, Trash2, PencilLine } from 'lucide-react'
+import { Plus, MessageCircleMore, LogIn, User, PanelLeft, MoreHorizontal, Trash2, PencilLine, Settings, LogOut } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { http } from '../utils/http'
 import ConfirmDialog from './ConfirmDialog'
@@ -30,6 +30,7 @@ export default function Sidebar({
   onLogout,
   onRefreshConversations,
   onOpenRename,
+  onOpenProfile,
 }) {
   const groups = useMemo(() => groupByDate(conversations), [conversations])
   const { user, isLoggedIn } = useAuth()
@@ -37,6 +38,8 @@ export default function Sidebar({
 
   const [hoveredId, setHoveredId] = useState(null)
   const [menuOpenId, setMenuOpenId] = useState(null)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const userMenuRef = useRef(null)
 
   // 删除弹窗
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -44,15 +47,18 @@ export default function Sidebar({
 
   // 点击外部关闭菜单
   useEffect(() => {
-    if (!menuOpenId) return
+    if (!menuOpenId && !userMenuOpen) return
     const handleClick = (e) => {
-      if (!e.target.closest('[data-menu-id]')) {
+      if (menuOpenId && !e.target.closest('[data-menu-id]')) {
         setMenuOpenId(null)
+      }
+      if (userMenuOpen && userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setUserMenuOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
-  }, [menuOpenId])
+  }, [menuOpenId, userMenuOpen])
 
   // —— 删除 ——
   const handleDeleteConfirm = async () => {
@@ -138,7 +144,7 @@ export default function Sidebar({
                       onMouseEnter={() => setHoveredId(conv.id)}
                       onMouseLeave={() => setHoveredId(null)}
                     >
-                      <MessageSquare size={14} className="shrink-0 text-gray-400" />
+                      <MessageCircleMore size={14} className="shrink-0 text-gray-400" />
                       <span className="truncate flex-1 text-[var(--color-text-primary)] dark:text-[var(--color-text-primary-dark)]">
                         {conv.title}
                       </span>
@@ -228,26 +234,70 @@ export default function Sidebar({
         </div>
 
         {/* 底部 — 登录 / 用户信息 */}
-        <div className="px-3 pb-3 pt-2 border-t border-[#e5e5e5] dark:border-[#222]">
+        <div ref={userMenuRef} className="px-3 pb-3 pt-2 border-t border-[#e5e5e5] dark:border-[#222] relative">
           {isLoggedIn ? (
-            <div className="flex items-center justify-between px-2.5 py-2 rounded-lg
-              text-[13px] text-gray-500 dark:text-gray-400">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-6 h-6 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center shrink-0">
-                  <User size={13} className="text-white" />
-                </div>
-                <span className="truncate text-[var(--color-text-primary)] dark:text-[var(--color-text-primary-dark)]">
-                  {user?.username || '用户'}
-                </span>
-              </div>
+            <>
               <button
-                onClick={onLogout}
-                className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                title="退出登录"
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center justify-between w-full px-2.5 py-2 rounded-lg
+                  text-[13px] text-gray-500 dark:text-gray-400
+                  hover:bg-gray-200/40 dark:hover:bg-white/5
+                  transition-colors duration-150"
               >
-                <LogIn size={14} />
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#1d1d1f] to-[#555] dark:from-[#f5f5f7] dark:to-[#999] flex items-center justify-center shrink-0">
+                    <span className="text-[10px] font-semibold text-white dark:text-[#1d1d1f]">
+                      {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
+                    </span>
+                  </div>
+                  <span className="truncate text-[var(--color-text-primary)] dark:text-[var(--color-text-primary-dark)]">
+                    {user?.nickname || user?.username || '用户'}
+                  </span>
+                </div>
+                <MoreHorizontal size={14} className="shrink-0 text-gray-400" />
               </button>
-            </div>
+
+              {/* 用户下拉菜单 */}
+              {userMenuOpen && (
+                <div
+                  className="absolute left-3 right-3 bottom-full mb-1 z-40 py-1 rounded-xl
+                    bg-white dark:bg-[#1c1c1e]
+                    shadow-[0_4px_20px_rgba(0,0,0,0.12)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)]
+                    border border-[#e5e5e5] dark:border-[#333]
+                    animate-fade-in-up"
+                >
+                  {/* 个人中心 */}
+                  <button
+                    className="flex items-center gap-2.5 w-full px-3 py-2 text-[13px]
+                      text-[#1d1d1f] dark:text-[#f5f5f7]
+                      hover:bg-gray-100 dark:hover:bg-white/10
+                      transition-colors duration-100"
+                    onClick={() => {
+                      setUserMenuOpen(false)
+                      onOpenProfile?.()
+                    }}
+                  >
+                    <Settings size={14} className="text-gray-400" />
+                    个人中心
+                  </button>
+
+                  {/* 退出登录 */}
+                  <button
+                    className="flex items-center gap-2.5 w-full px-3 py-2 text-[13px]
+                      text-red-600 dark:text-red-400
+                      hover:bg-red-50 dark:hover:bg-red-500/10
+                      transition-colors duration-100"
+                    onClick={() => {
+                      setUserMenuOpen(false)
+                      onLogout()
+                    }}
+                  >
+                    <LogOut size={14} />
+                    退出登录
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             <button
               className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg
