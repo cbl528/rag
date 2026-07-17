@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Search, UserPlus, Loader2, AlertCircle } from 'lucide-react'
+import { Search, UserPlus, Edit3, Trash2, Loader2, AlertCircle } from 'lucide-react'
 import { http } from '../../utils/http'
 
 const AVATAR_BASE = import.meta.env.VITE_API_BASE || ''
@@ -139,8 +139,10 @@ export default function UserManage() {
                   <th className="text-left px-4 py-3 font-medium">用户名</th>
                   <th className="text-left px-4 py-3 font-medium">昵称</th>
                   <th className="text-left px-4 py-3 font-medium">角色</th>
+                  <th className="text-left px-4 py-3 font-medium">账号状态</th>
                   <th className="text-left px-4 py-3 font-medium">创建时间</th>
-                  <th className="text-left px-4 py-3 font-medium">更新时间</th>
+                  <th className="text-left px-4 py-3 font-medium">上次登录</th>
+                  <th className="text-left px-4 py-3 font-medium">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#e5e5e5] dark:divide-[#333]">
@@ -186,6 +188,19 @@ export default function UserManage() {
                         {u.role === 'admin' ? '管理员' : '普通用户'}
                       </span>
                     </td>
+                    {/* 账号状态 */}
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[12px] font-medium ${
+                        u.status === 1
+                          ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300'
+                          : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          u.status === 1 ? 'bg-red-500' : 'bg-green-500'
+                        }`} />
+                        {u.status === 1 ? '禁用' : '正常'}
+                      </span>
+                    </td>
                     {/* 创建时间 */}
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       {u.createTime ? new Date(u.createTime).toLocaleString('zh-CN', {
@@ -193,12 +208,31 @@ export default function UserManage() {
                         hour: '2-digit', minute: '2-digit'
                       }) : '-'}
                     </td>
-                    {/* 更新时间 */}
+                    {/* 上次登录 */}
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                      {u.updateTime ? new Date(u.updateTime).toLocaleString('zh-CN', {
+                      {u.lastLogin ? new Date(u.lastLogin).toLocaleString('zh-CN', {
                         year: 'numeric', month: '2-digit', day: '2-digit',
                         hour: '2-digit', minute: '2-digit'
                       }) : '-'}
+                    </td>
+                    {/* 操作 */}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => {}}
+                          className="p-1.5 rounded-lg hover:bg-[#f5f5f7] dark:hover:bg-[#1c1c1e] text-gray-400 hover:text-blue-500 transition-colors"
+                          title="编辑"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                        <button
+                          onClick={() => {}}
+                          className="p-1.5 rounded-lg hover:bg-[#f5f5f7] dark:hover:bg-[#1c1c1e] text-gray-400 hover:text-red-500 transition-colors"
+                          title="删除"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

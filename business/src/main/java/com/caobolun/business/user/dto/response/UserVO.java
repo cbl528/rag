@@ -18,6 +18,8 @@ public class UserVO {
     private String nickname;
     private String role;
     private String avatar;
+    private Integer status;
+    private LocalDateTime lastLogin;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

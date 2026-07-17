@@ -227,6 +227,8 @@ public class UserServiceImpl implements UserService {
                 .nickname(user.getNickname())
                 .role(user.getRole())
                 .avatar(user.getAvatar())
+                .status(user.getStatus())
+                .lastLogin(user.getLastLogin())
                 .createTime(user.getCreateTime())
                 .updateTime(user.getUpdateTime())
                 .build();

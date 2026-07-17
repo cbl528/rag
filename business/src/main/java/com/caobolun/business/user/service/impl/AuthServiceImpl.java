@@ -15,6 +15,8 @@ import com.caobolun.framework.exception.ClientException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -35,6 +37,10 @@ public class AuthServiceImpl implements AuthService {
         if (user == null) {
             throw new ClientException("用户不存在");
         }
+        // 账号状态校验（0=正常，1=禁用）
+        if (Integer.valueOf(1).equals(user.getStatus())) {
+            throw new ClientException("账号已被禁用，请联系管理员");
+        }
         // 密码校验
 //        if (!BCrypt.checkpw(request.getPassword(), user.getPassword())) {
 //            throw new ClientException("密码错误");
@@ -45,6 +51,10 @@ public class AuthServiceImpl implements AuthService {
         }
         StpUtil.login(user.getUserId());
         String token = StpUtil.getTokenValue();
+
+        // 更新上次登录时间
+        user.setLastLogin(LocalDateTime.now());
+        userMapper.updateById(user);
 
         return LoginVO.builder()
                 .token(token)

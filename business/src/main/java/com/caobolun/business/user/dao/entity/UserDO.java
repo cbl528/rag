@@ -32,11 +32,16 @@ public class UserDO {
 
     private String avatar;
 
+    private Integer status;
+
     @TableField(value = "create_time", fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
     @TableField(value = "update_time", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
+
+    @TableField("last_login")
+    private LocalDateTime lastLogin;
 
     @TableLogic
     private Integer deleted;
