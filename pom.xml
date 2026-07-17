@@ -38,6 +38,7 @@
         <sa-token.version>1.43.0</sa-token.version>
         <milvus-sdk.version>2.5.5</milvus-sdk.version>
         <transmittable-thread-local.version>2.14.5</transmittable-thread-local.version>
+        <minio.version>8.5.17</minio.version>
     </properties>
 
     <!--
@@ -116,6 +117,13 @@
                 <groupId>com.alibaba</groupId>
                 <artifactId>transmittable-thread-local</artifactId>
                 <version>${transmittable-thread-local.version}</version>
+            </dependency>
+
+            <!-- ====== MinIO 对象存储 ====== -->
+            <dependency>
+                <groupId>io.minio</groupId>
+                <artifactId>minio</artifactId>
+                <version>${minio.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

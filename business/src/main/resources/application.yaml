@@ -8,3 +8,15 @@ spring:
       max-file-size: 50MB
       max-request-size: 50MB
 
+# ===== 对象存储（MinIO） =====
+# 生产环境需要填写 endpoint/accessKey/secretKey/bucket，
+# 敏感配置请在 application-dev.yaml 中覆盖。
+minio:
+  endpoint: http://localhost:9000
+  access-key: minioadmin
+  secret-key: minioadmin
+  bucket: rag-storage
+  # 文件访问地址前缀（用于生成可访问的 URL）
+  external-url: http://localhost:9000/rag-storage
+
+
