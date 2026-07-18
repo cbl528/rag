@@ -13,6 +13,11 @@ public interface UserService {
 
     UserVO updateUser(Long id, UserUpdateDTO request);
 
+    /**
+     * 用户自己修改个人信息（需要旧密码校验）
+     */
+    UserVO updateSelf(UserUpdateDTO request);
+
     void deleteUser(Long id);
 
     Page<UserVO> pageUser(UserPageDTO request);

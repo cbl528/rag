@@ -52,6 +52,14 @@ public class UserController {
     }
 
     /**
+     * 用户自己修改个人信息（需旧密码校验）
+     */
+    @PutMapping("/api/v1/users/profile")
+    public Result<UserVO> updateSelf(@RequestBody UserUpdateDTO request) {
+        return Results.success(userService.updateSelf(request));
+    }
+
+    /**
      * 上传头像（当前用户自己）
      */
     @PostMapping("/api/v1/users/avatar")

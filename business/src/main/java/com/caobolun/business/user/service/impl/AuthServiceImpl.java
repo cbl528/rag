@@ -8,8 +8,11 @@ import com.caobolun.business.user.dao.mapper.UserMapper;
 import com.caobolun.business.user.dto.request.LoginDTO;
 import com.caobolun.business.user.dto.request.PasswordUpdateDTO;
 import com.caobolun.business.user.dto.request.ProfileUpdateDTO;
+import com.caobolun.business.user.dto.request.UserUpdateDTO;
 import com.caobolun.business.user.dto.response.LoginVO;
 import com.caobolun.business.user.dto.response.UserInfoVO;
+import com.caobolun.business.user.dto.response.UserVO;
+import com.caobolun.business.user.dto.response.UserVO;
 import com.caobolun.business.user.service.AuthService;
 import com.caobolun.framework.exception.ClientException;
 import lombok.RequiredArgsConstructor;
@@ -101,6 +104,44 @@ public class AuthServiceImpl implements AuthService {
         }
         user.setPassword(request.getNewPassword());
         userMapper.updateById(user);
+    }
+
+    @Override
+    public UserVO adminUpdateUser(Long id, UserUpdateDTO request) {
+        UserDO user = userMapper.selectById(id);
+        if (user == null) {
+            throw new ClientException("用户不存在");
+        }
+        // 保护默认 admin
+        if ("admin".equals(user.getUsername())) {
+            throw new ClientException("默认管理员不能修改");
+        }
+        // 更新昵称
+        if (StrUtil.isNotBlank(request.getNickname())) {
+            user.setNickname(request.getNickname());
+        }
+        // 更新密码（管理员修改无需旧密码）
+        if (StrUtil.isNotBlank(request.getPassword())) {
+            user.setPassword(request.getPassword());
+        }
+        // 更新状态
+        if (request.getStatus() != null) {
+            user.setStatus(request.getStatus());
+        }
+        userMapper.updateById(user);
+
+        return UserVO.builder()
+                .id(user.getId())
+                .userId(user.getUserId())
+                .username(user.getUsername())
+                .nickname(user.getNickname())
+                .role(user.getRole())
+                .avatar(user.getAvatar())
+                .status(user.getStatus())
+                .lastLogin(user.getLastLogin())
+                .createTime(user.getCreateTime())
+                .updateTime(user.getUpdateTime())
+                .build();
     }
 
     private UserDO getCurrentUser() {

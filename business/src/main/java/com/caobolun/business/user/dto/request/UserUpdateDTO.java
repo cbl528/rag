@@ -8,4 +8,7 @@ public class UserUpdateDTO {
     private String nickname;
     private String role;
     private String avatar;
+    private String password;
+    private String oldPassword;
+    private Integer status;
 }

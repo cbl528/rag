@@ -85,7 +85,7 @@ export default function ProfileDialog({ open, onClose }) {
     setSavingNickname(true)
     setNicknameMessage(null)
     try {
-      await http.put('/api/v1/auth/profile', { nickname: trimmed })
+      await http.put('/api/v1/users/profile', { nickname: trimmed })
       await refreshUser()
       setNicknameMessage({ type: 'success', text: '昵称已更新' })
       setEditingNickname(false)
@@ -117,7 +117,7 @@ export default function ProfileDialog({ open, onClose }) {
     setChangingPassword(true)
     setPasswordMessage(null)
     try {
-      await http.put('/api/v1/auth/password', { oldPassword, newPassword })
+      await http.put('/api/v1/users/profile', { oldPassword, password: newPassword })
       setPasswordMessage({ type: 'success', text: '密码修改成功' })
       setOldPassword('')
       setNewPassword('')

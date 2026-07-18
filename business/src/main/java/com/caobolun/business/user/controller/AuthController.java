@@ -1,10 +1,13 @@
 package com.caobolun.business.user.controller;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.caobolun.business.user.dto.request.LoginDTO;
 import com.caobolun.business.user.dto.request.PasswordUpdateDTO;
 import com.caobolun.business.user.dto.request.ProfileUpdateDTO;
+import com.caobolun.business.user.dto.request.UserUpdateDTO;
 import com.caobolun.business.user.dto.response.LoginVO;
 import com.caobolun.business.user.dto.response.UserInfoVO;
+import com.caobolun.business.user.dto.response.UserVO;
 import com.caobolun.business.user.service.AuthService;
 import com.caobolun.framework.convention.Result;
 import com.caobolun.framework.web.Results;
@@ -45,5 +48,12 @@ public class AuthController {
         return Results.success();
     }
 
-
+    /**
+     * 管理员修改用户信息（无需旧密码，可修改状态）
+     */
+    @PutMapping("/api/v1/auth/admin/users/{id}")
+    public Result<UserVO> adminUpdateUser(@PathVariable Long id, @RequestBody UserUpdateDTO request) {
+        StpUtil.checkRole("admin");
+        return Results.success(authService.adminUpdateUser(id, request));
+    }
 }

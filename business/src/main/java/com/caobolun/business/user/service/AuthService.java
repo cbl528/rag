@@ -3,8 +3,10 @@ package com.caobolun.business.user.service;
 import com.caobolun.business.user.dto.request.LoginDTO;
 import com.caobolun.business.user.dto.request.PasswordUpdateDTO;
 import com.caobolun.business.user.dto.request.ProfileUpdateDTO;
+import com.caobolun.business.user.dto.request.UserUpdateDTO;
 import com.caobolun.business.user.dto.response.LoginVO;
 import com.caobolun.business.user.dto.response.UserInfoVO;
+import com.caobolun.business.user.dto.response.UserVO;
 
 public interface AuthService {
 
@@ -17,5 +19,10 @@ public interface AuthService {
     void updateProfile(ProfileUpdateDTO request);
 
     void updatePassword(PasswordUpdateDTO request);
+
+    /**
+     * 管理员修改用户信息（无需旧密码，可修改状态）
+     */
+    UserVO adminUpdateUser(Long id, UserUpdateDTO request);
 
 }

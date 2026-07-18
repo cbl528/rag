@@ -1,5 +1,6 @@
 package com.caobolun.business.user.service.impl;
 
+import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -104,6 +105,48 @@ public class UserServiceImpl implements UserService {
         if (StrUtil.isNotBlank(request.getAvatar())) {
             user.setAvatar(request.getAvatar());
         }
+        if (StrUtil.isNotBlank(request.getPassword())) {
+            user.setPassword(request.getPassword());
+        }
+        if (request.getStatus() != null) {
+            user.setStatus(request.getStatus());
+        }
+        userMapper.updateById(user);
+        return toUserVO(user);
+    }
+
+    @Override
+    public UserVO updateSelf(UserUpdateDTO request) {
+        // 获取当前登录用户
+        String userId = StpUtil.getLoginIdAsString();
+        UserDO user = userMapper.selectOne(
+                new LambdaQueryWrapper<UserDO>()
+                        .eq(UserDO::getUserId, userId)
+        );
+        if (user == null) {
+            throw new ClientException("用户不存在");
+        }
+
+        // 修改密码需校验旧密码
+        if (StrUtil.isNotBlank(request.getPassword())) {
+            if (StrUtil.isBlank(request.getOldPassword())) {
+                throw new ClientException("旧密码不能为空");
+            }
+            if (!StrUtil.equals(request.getOldPassword(), user.getPassword())) {
+                throw new ClientException("旧密码错误");
+            }
+            user.setPassword(request.getPassword());
+        }
+
+        // 更新昵称
+        if (StrUtil.isNotBlank(request.getNickname())) {
+            user.setNickname(request.getNickname());
+        }
+        // 更新头像
+        if (request.getAvatar() != null) {
+            user.setAvatar(request.getAvatar());
+        }
+
         userMapper.updateById(user);
         return toUserVO(user);
     }
