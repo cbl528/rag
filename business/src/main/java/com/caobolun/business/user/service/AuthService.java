@@ -1,5 +1,7 @@
 package com.caobolun.business.user.service;
 
+import com.caobolun.business.user.dto.request.BatchIdsDTO;
+import com.caobolun.business.user.dto.request.BatchStatusDTO;
 import com.caobolun.business.user.dto.request.LoginDTO;
 import com.caobolun.business.user.dto.request.PasswordUpdateDTO;
 import com.caobolun.business.user.dto.request.ProfileUpdateDTO;
@@ -25,4 +27,13 @@ public interface AuthService {
      */
     UserVO adminUpdateUser(Long id, UserUpdateDTO request);
 
+    /**
+     * 批量禁用/启用用户
+     */
+    void batchUpdateStatus(BatchStatusDTO request);
+
+    /**
+     * 批量删除用户
+     */
+    void batchDeleteUsers(BatchIdsDTO request);
 }

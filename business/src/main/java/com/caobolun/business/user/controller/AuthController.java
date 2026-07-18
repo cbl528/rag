@@ -1,6 +1,8 @@
 package com.caobolun.business.user.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
+import com.caobolun.business.user.dto.request.BatchIdsDTO;
+import com.caobolun.business.user.dto.request.BatchStatusDTO;
 import com.caobolun.business.user.dto.request.LoginDTO;
 import com.caobolun.business.user.dto.request.PasswordUpdateDTO;
 import com.caobolun.business.user.dto.request.ProfileUpdateDTO;
@@ -55,5 +57,25 @@ public class AuthController {
     public Result<UserVO> adminUpdateUser(@PathVariable Long id, @RequestBody UserUpdateDTO request) {
         StpUtil.checkRole("admin");
         return Results.success(authService.adminUpdateUser(id, request));
+    }
+
+    /**
+     * 批量禁用/启用用户
+     */
+    @PutMapping("/api/v1/auth/admin/users/batch/status")
+    public Result<Void> batchUpdateStatus(@RequestBody BatchStatusDTO request) {
+        StpUtil.checkRole("admin");
+        authService.batchUpdateStatus(request);
+        return Results.success();
+    }
+
+    /**
+     * 批量删除用户
+     */
+    @DeleteMapping("/api/v1/auth/admin/users/batch")
+    public Result<Void> batchDeleteUsers(@RequestBody BatchIdsDTO request) {
+        StpUtil.checkRole("admin");
+        authService.batchDeleteUsers(request);
+        return Results.success();
     }
 }

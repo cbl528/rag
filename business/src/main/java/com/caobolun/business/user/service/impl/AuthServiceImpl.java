@@ -5,6 +5,8 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.caobolun.business.user.dao.entity.UserDO;
 import com.caobolun.business.user.dao.mapper.UserMapper;
+import com.caobolun.business.user.dto.request.BatchIdsDTO;
+import com.caobolun.business.user.dto.request.BatchStatusDTO;
 import com.caobolun.business.user.dto.request.LoginDTO;
 import com.caobolun.business.user.dto.request.PasswordUpdateDTO;
 import com.caobolun.business.user.dto.request.ProfileUpdateDTO;
@@ -142,6 +144,39 @@ public class AuthServiceImpl implements AuthService {
                 .createTime(user.getCreateTime())
                 .updateTime(user.getUpdateTime())
                 .build();
+    }
+
+    @Override
+    public void batchUpdateStatus(BatchStatusDTO request) {
+        if (request.getIds() == null || request.getIds().isEmpty()) {
+            throw new ClientException("请选择要操作的用户");
+        }
+        if (request.getStatus() == null) {
+            throw new ClientException("请设置目标状态");
+        }
+        userMapper.update(
+                UserDO.builder().status(request.getStatus()).build(),
+                new LambdaQueryWrapper<UserDO>().in(UserDO::getId, request.getIds())
+        );
+    }
+
+    @Override
+    public void batchDeleteUsers(BatchIdsDTO request) {
+        if (request.getIds() == null || request.getIds().isEmpty()) {
+            throw new ClientException("请选择要删除的用户");
+        }
+        // 保护 admin 用户不被批量删除
+        long adminCount = userMapper.selectCount(
+                new LambdaQueryWrapper<UserDO>()
+                        .in(UserDO::getId, request.getIds())
+                        .eq(UserDO::getUsername, "admin")
+        );
+        if (adminCount > 0) {
+            throw new ClientException("默认管理员不能删除");
+        }
+        userMapper.delete(
+                new LambdaQueryWrapper<UserDO>().in(UserDO::getId, request.getIds())
+        );
     }
 
     private UserDO getCurrentUser() {

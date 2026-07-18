@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Search, UserPlus, Edit3, Trash2, Loader2, AlertCircle, CheckCircle } from 'lucide-react'
+import { Search, UserPlus, Edit3, Trash2, Ban, Loader2, AlertCircle } from 'lucide-react'
 import { http } from '../../utils/http'
 import ConfirmDialog from '../../components/ConfirmDialog'
 
@@ -26,6 +26,10 @@ export default function UserManage() {
   // 删除弹窗
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
+
+  // 批量操作弹窗
+  const [batchAction, setBatchAction] = useState(null) // 'disable' | 'delete'
+  const [batchProcessing, setBatchProcessing] = useState(false)
 
   // ---- 数据加载 ----
 
@@ -146,6 +150,27 @@ export default function UserManage() {
     }
   }
 
+  // ---- 批量操作 ----
+
+  const handleBatchConfirm = async () => {
+    if (!batchAction || selectedIds.size === 0) return
+    setBatchProcessing(true)
+    try {
+      const ids = Array.from(selectedIds)
+      if (batchAction === 'delete') {
+        await http.delete('/api/v1/auth/admin/users/batch', { ids })
+      } else if (batchAction === 'disable') {
+        await http.put('/api/v1/auth/admin/users/batch/status', { ids, status: 1 })
+      }
+      setBatchAction(null)
+      fetchUsers(keyword, page)
+    } catch (e) {
+      setError(e.message || '批量操作失败')
+    } finally {
+      setBatchProcessing(false)
+    }
+  }
+
   // ---- 工具 ----
 
   const getAvatarUrl = (avatar) => {
@@ -169,11 +194,14 @@ export default function UserManage() {
   return (
     <div className="flex flex-col h-full">
       {/* ====== 页面标题栏 ====== */}
-      <div className="flex items-center justify-between px-8 py-4 border-b border-[#e5e5e5] dark:border-[#333] bg-white dark:bg-[#141414] shrink-0">
+      <div className="px-8 py-4 shrink-0">
         <h1 className="text-xl font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">用户管理</h1>
+      </div>
 
-        {/* 工具栏 */}
-        <div className="flex items-center gap-3">
+      {/* ====== 内容区 ====== */}
+      <div className="flex-1 overflow-auto px-8 pb-6">
+        {/* 工具栏：搜索 + 批量操作 */}
+        <div className="flex items-center justify-between mb-4">
           {/* 搜索框 */}
           <div className="relative">
             <Search
@@ -195,20 +223,46 @@ export default function UserManage() {
             />
           </div>
 
-          {/* 新增用户按钮 */}
-          <button
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[13px] font-medium
-              bg-blue-600 text-white hover:bg-blue-700
-              transition-colors duration-200"
-          >
-            <UserPlus size={15} />
-            新增用户
-          </button>
+          {/* 操作按钮组 */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setBatchAction('disable')}
+              disabled={selectedIds.size === 0}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[13px] font-medium
+                transition-all duration-200
+                disabled:opacity-30 disabled:cursor-not-allowed
+                bg-amber-50 text-amber-600 hover:bg-amber-100
+                dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/30
+                active:scale-[0.98]"
+            >
+              <Ban size={14} />
+              批量禁用
+            </button>
+            <button
+              onClick={() => setBatchAction('delete')}
+              disabled={selectedIds.size === 0}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[13px] font-medium
+                transition-all duration-200
+                disabled:opacity-30 disabled:cursor-not-allowed
+                bg-red-50 text-red-600 hover:bg-red-100
+                dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30
+                active:scale-[0.98]"
+            >
+              <Trash2 size={14} />
+              批量删除
+            </button>
+            <div className="w-px h-5 bg-[#e5e5e5] dark:bg-[#333]" />
+            <button
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[13px] font-medium
+                bg-blue-600 text-white hover:bg-blue-700
+                transition-colors duration-200"
+            >
+              <UserPlus size={15} />
+              新增用户
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* ====== 内容区 ====== */}
-      <div className="flex-1 overflow-auto px-8 py-6">
         {/* 错误提示 */}
         {error && (
           <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-center gap-2 text-[13px] text-red-700 dark:text-red-300">
@@ -503,6 +557,29 @@ export default function UserManage() {
         loading={deleting}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      {/* ====== 批量禁用确认弹窗 ====== */}
+      <ConfirmDialog
+        open={batchAction === 'disable'}
+        title="批量禁用"
+        description={`确定要禁用选中的 ${selectedIds.size} 个用户吗？禁用后用户将无法登录。`}
+        confirmLabel="禁用"
+        loading={batchProcessing}
+        onConfirm={handleBatchConfirm}
+        onCancel={() => setBatchAction(null)}
+      />
+
+      {/* ====== 批量删除确认弹窗 ====== */}
+      <ConfirmDialog
+        open={batchAction === 'delete'}
+        title="批量删除"
+        description={`确定要删除选中的 ${selectedIds.size} 个用户吗？该操作不可恢复。`}
+        confirmLabel="删除"
+        confirmDanger
+        loading={batchProcessing}
+        onConfirm={handleBatchConfirm}
+        onCancel={() => setBatchAction(null)}
       />
     </div>
   )
