@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Upload, File as FileIcon, FileText, X, CheckCircle, AlertCircle, Loader2, Clock, ChevronRight } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
 import { http } from '../../utils/http'
 
 const STATUS_MAP = {
@@ -52,7 +55,7 @@ export default function UploadDoc() {
     setPreviewError(null)
 
     if (!doc.fileUrl) {
-      setPreviewError('该文档无原始文件可预览（MinIO 不可用）')
+      setPreviewError('该文档暂无可预览的源文件')
       return
     }
 
@@ -388,6 +391,15 @@ export default function UploadDoc() {
                         className="w-full h-full border-0 rounded-lg"
                         title="PDF 预览"
                       />
+                    ) : selectedDoc.fileType === 'md' ? (
+                      <div className="max-w-none text-[14px] leading-relaxed text-[#1d1d1f] dark:text-[#e5e5e7]">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeHighlight]}
+                        >
+                          {previewContent || '（文件内容为空）'}
+                        </ReactMarkdown>
+                      </div>
                     ) : (
                       <pre className="text-[13px] leading-relaxed text-[#1d1d1f] dark:text-[#e5e5e7]
                         whitespace-pre-wrap break-words font-mono">
