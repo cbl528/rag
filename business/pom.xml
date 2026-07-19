@@ -20,6 +20,12 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- 2. AOP 支持（@Aspect 注解） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
         <!-- 2. MyBatis-Plus -->
         <dependency>
             <groupId>com.baomidou</groupId>

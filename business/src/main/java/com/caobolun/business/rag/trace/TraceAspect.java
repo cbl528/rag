@@ -36,18 +36,25 @@ public class TraceAspect {
 
     @Around("@annotation(traceNode)")
     public Object aroundNode(ProceedingJoinPoint joinPoint, TraceNode traceNode) throws Throwable {
+        // 如果未开启开启链路追踪
         if (!traceProperties.isEnabled()) {
+            // 直接返回
             return joinPoint.proceed();
         }
+        // 获取当前链路ID
         String traceId = TraceContext.getTraceId();
         if (StrUtil.isBlank(traceId)) {
             return joinPoint.proceed();
         }
-
+        // 获取方法签名
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+        // 根据签名获取方法
         Method method = signature.getMethod();
+        // 生成节点ID
         String nodeId = IdUtil.getSnowflakeNextIdStr();
+        // 获取父节点ID
         String parentNodeId = TraceContext.currentNodeId();
+        // 获取节点的深度
         int depth = TraceContext.depth();
         LocalDateTime startTime = LocalDateTime.now();
         long startMillis = System.currentTimeMillis();
