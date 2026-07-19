@@ -33,6 +33,8 @@ public class DocumentDO {
 
     private String errorMessage;
 
+    private String fileUrl;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 

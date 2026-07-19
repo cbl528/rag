@@ -23,4 +23,6 @@ public class UploadFileResponse {
     private String status; // 文件状态 uploading/indexed/fail
 
     private String errorMessage; // 失败原因
+
+    private String fileUrl; // MinIO 文件访问 URL
 }

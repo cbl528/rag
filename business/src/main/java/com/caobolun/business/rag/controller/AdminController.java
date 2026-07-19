@@ -2,8 +2,10 @@ package com.caobolun.business.rag.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.caobolun.business.rag.dao.entity.DocumentDO;
 import com.caobolun.business.rag.dao.mapper.DocumentMapper;
+import com.caobolun.business.rag.dto.response.DocumentListResponse;
 import com.caobolun.business.rag.dto.response.UploadFileResponse;
 import com.caobolun.business.rag.service.UploadFileService;
 import com.caobolun.framework.convention.Result;
@@ -12,6 +14,8 @@ import com.caobolun.framework.web.Results;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 /**
  * 管理端控制器
@@ -67,6 +71,62 @@ public class AdminController {
                 .chunkCount(doc.getChunkCount() != null ? doc.getChunkCount() : 0)
                 .status(doc.getStatus())
                 .errorMessage(doc.getErrorMessage())
+                .fileUrl(doc.getFileUrl())
+                .build());
+    }
+
+    /**
+     * 获取文档列表（全部文档，按创建时间倒序）
+     */
+    @GetMapping("/api/v1/admin/documents")
+    public Result<List<DocumentListResponse>> listDocuments() {
+        StpUtil.checkRole("admin");
+
+        List<DocumentDO> docs = documentMapper.selectList(
+                Wrappers.<DocumentDO>lambdaQuery()
+                        .orderByDesc(DocumentDO::getCreateTime));
+
+        List<DocumentListResponse> result = docs.stream()
+                .map(doc -> DocumentListResponse.builder()
+                        .docId(doc.getDocId())
+                        .fileName(doc.getFileName())
+                        .fileType(doc.getFileType())
+                        .fileSize(doc.getFileSize())
+                        .chunkCount(doc.getChunkCount() != null ? doc.getChunkCount() : 0)
+                        .status(doc.getStatus())
+                        .errorMessage(doc.getErrorMessage())
+                        .fileUrl(doc.getFileUrl())
+                        .createTime(doc.getCreateTime())
+                        .build())
+                .toList();
+
+        return Results.success(result);
+    }
+
+    /**
+     * 获取文档详情（含 MinIO 预览 URL）
+     */
+    @GetMapping("/api/v1/admin/document/{docId}")
+    public Result<DocumentListResponse> getDocument(@PathVariable String docId) {
+        StpUtil.checkRole("admin");
+
+        DocumentDO doc = documentMapper.selectOne(
+                new LambdaQueryWrapper<DocumentDO>()
+                        .eq(DocumentDO::getDocId, docId));
+        if (doc == null) {
+            throw new ClientException("文档不存在");
+        }
+
+        return Results.success(DocumentListResponse.builder()
+                .docId(doc.getDocId())
+                .fileName(doc.getFileName())
+                .fileType(doc.getFileType())
+                .fileSize(doc.getFileSize())
+                .chunkCount(doc.getChunkCount() != null ? doc.getChunkCount() : 0)
+                .status(doc.getStatus())
+                .errorMessage(doc.getErrorMessage())
+                .fileUrl(doc.getFileUrl())
+                .createTime(doc.getCreateTime())
                 .build());
     }
 }

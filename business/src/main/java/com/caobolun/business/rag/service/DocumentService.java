@@ -58,12 +58,14 @@ public class DocumentService {
             log.info("文档ID: {} 被分为 {} 块", docId, chunks.size());
             // 2. 文档向量化
             updateDocStatus(docId, "embedding");
+            // 取分片列表中的文本内容
             List<String> texts = chunks.stream()
                     .map(VectorChunk::getContent)
                     .toList();
+            // 对文本内容向量化
             List<float[]> embeddings = embeddingService.embedBatch(texts);
-            // 3. 设置 metadata 和 embedding
             List<KnowledgeChunkDO> entities = new ArrayList<>();
+            // 3. 向向量分片中填入对应的doc_id和向量化值
             for (int i = 0; i < chunks.size(); i++) {
                 VectorChunk chunk = chunks.get(i);
                 chunk.getMetadata().put("doc_id", docId);

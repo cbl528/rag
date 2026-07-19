@@ -154,6 +154,15 @@ public class AuthServiceImpl implements AuthService {
         if (request.getStatus() == null) {
             throw new ClientException("请设置目标状态");
         }
+        // 保护 admin 用户不被批量禁用
+        long adminCount = userMapper.selectCount(
+                new LambdaQueryWrapper<UserDO>()
+                        .in(UserDO::getId, request.getIds())
+                        .eq(UserDO::getUsername, "admin")
+        );
+        if (adminCount > 0) {
+            throw new ClientException("默认管理员不能被操作");
+        }
         userMapper.update(
                 UserDO.builder().status(request.getStatus()).build(),
                 new LambdaQueryWrapper<UserDO>().in(UserDO::getId, request.getIds())
@@ -172,7 +181,7 @@ public class AuthServiceImpl implements AuthService {
                         .eq(UserDO::getUsername, "admin")
         );
         if (adminCount > 0) {
-            throw new ClientException("默认管理员不能删除");
+            throw new ClientException("默认管理员不能被操作");
         }
         userMapper.delete(
                 new LambdaQueryWrapper<UserDO>().in(UserDO::getId, request.getIds())

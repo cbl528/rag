@@ -81,13 +81,14 @@ export default function UserManage() {
 
   // ---- 选择 ----
 
-  const allSelected = users.length > 0 && selectedIds.size === users.length
+  const selectableUsers = users.filter(u => u.username !== 'admin')
+  const allSelected = selectableUsers.length > 0 && selectedIds.size === selectableUsers.length
 
   const toggleAll = () => {
     if (allSelected) {
       setSelectedIds(new Set())
     } else {
-      setSelectedIds(new Set(users.map(u => u.id)))
+      setSelectedIds(new Set(selectableUsers.map(u => u.id)))
     }
   }
 
@@ -205,15 +206,15 @@ export default function UserManage() {
           {/* 搜索框 */}
           <div className="relative">
             <Search
-              size={15}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              size={16}
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
             />
             <input
               type="text"
               value={keyword}
               onChange={handleSearchChange}
               placeholder="搜索用户名或昵称…"
-              className="w-56 pl-9 pr-4 py-1.5 text-[13px] rounded-lg
+              className="w-72 pl-10 pr-4 py-2 text-[14px] rounded-lg
                 bg-[#f5f5f7] dark:bg-[#1c1c1e]
                 text-[#1d1d1f] dark:text-[#f5f5f7]
                 placeholder:text-[#aeaeb2] dark:placeholder:text-[#636366]
@@ -228,36 +229,36 @@ export default function UserManage() {
             <button
               onClick={() => setBatchAction('disable')}
               disabled={selectedIds.size === 0}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[13px] font-medium
+              className="flex items-center gap-2 px-5 py-2 rounded-lg text-[14px] font-medium
                 transition-all duration-200
                 disabled:opacity-30 disabled:cursor-not-allowed
                 bg-amber-50 text-amber-600 hover:bg-amber-100
                 dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/30
                 active:scale-[0.98]"
             >
-              <Ban size={14} />
+              <Ban size={15} />
               批量禁用
             </button>
             <button
               onClick={() => setBatchAction('delete')}
               disabled={selectedIds.size === 0}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[13px] font-medium
+              className="flex items-center gap-2 px-5 py-2 rounded-lg text-[14px] font-medium
                 transition-all duration-200
                 disabled:opacity-30 disabled:cursor-not-allowed
                 bg-red-50 text-red-600 hover:bg-red-100
                 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30
                 active:scale-[0.98]"
             >
-              <Trash2 size={14} />
+              <Trash2 size={15} />
               批量删除
             </button>
-            <div className="w-px h-5 bg-[#e5e5e5] dark:bg-[#333]" />
+            <div className="w-px h-6 bg-[#e5e5e5] dark:bg-[#333]" />
             <button
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[13px] font-medium
+              className="flex items-center gap-2 px-5 py-2 rounded-lg text-[14px] font-medium
                 bg-blue-600 text-white hover:bg-blue-700
                 transition-colors duration-200"
             >
-              <UserPlus size={15} />
+              <UserPlus size={16} />
               新增用户
             </button>
           </div>
@@ -328,9 +329,12 @@ export default function UserManage() {
                           type="checkbox"
                           checked={selectedIds.has(u.id)}
                           onChange={() => toggleOne(u.id)}
+                          disabled={u.username === 'admin'}
                           className="w-4 h-4 rounded border-gray-300 dark:border-gray-600
-                            text-blue-600 focus:ring-blue-500 cursor-pointer
-                            accent-blue-600"
+                            text-blue-600 focus:ring-blue-500
+                            accent-blue-600
+                            disabled:opacity-30 disabled:cursor-not-allowed
+                            cursor-pointer disabled:cursor-not-allowed"
                         />
                       </td>
 
@@ -404,15 +408,21 @@ export default function UserManage() {
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => openEdit(u)}
-                            className="p-1.5 rounded-lg hover:bg-[#f5f5f7] dark:hover:bg-[#1c1c1e] text-gray-400 hover:text-blue-500 transition-colors"
-                            title="编辑"
+                            disabled={u.username === 'admin'}
+                            className="p-1.5 rounded-lg hover:bg-[#f5f5f7] dark:hover:bg-[#1c1c1e] transition-colors
+                              disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:bg-transparent
+                              text-gray-400 hover:text-blue-500"
+                            title={u.username === 'admin' ? '默认管理员不能编辑' : '编辑'}
                           >
                             <Edit3 size={14} />
                           </button>
                           <button
                             onClick={() => setDeleteTarget(u)}
-                            className="p-1.5 rounded-lg hover:bg-[#f5f5f7] dark:hover:bg-[#1c1c1e] text-gray-400 hover:text-red-500 transition-colors"
-                            title="删除"
+                            disabled={u.username === 'admin'}
+                            className="p-1.5 rounded-lg hover:bg-[#f5f5f7] dark:hover:bg-[#1c1c1e] transition-colors
+                              disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:bg-transparent
+                              text-gray-400 hover:text-red-500"
+                            title={u.username === 'admin' ? '默认管理员不能删除' : '删除'}
                           >
                             <Trash2 size={14} />
                           </button>

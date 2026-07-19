@@ -80,6 +80,7 @@ CREATE TABLE t_document (
                             chunk_size INT DEFAULT 512 COMMENT '分片大小',
                             chunk_overlap INT DEFAULT 128 COMMENT '分片重叠',
                             status VARCHAR(16) DEFAULT 'uploading' COMMENT '状态：uploading/indexing/indexed/failed',
+                            file_url VARCHAR(512) COMMENT 'MinIO 文件访问路径',
                             error_message TEXT COMMENT '失败原因',
                             create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
                             update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
