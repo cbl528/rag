@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.caobolun.ai.client.OpenAICompatibleClient;
 import com.caobolun.framework.convention.ChatMessage;
+import com.caobolun.framework.trace.TraceNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -69,6 +70,7 @@ public class DefaultQueryRewriteService implements QueryRewriteService {
     private final OpenAICompatibleClient openAICompatibleClient;
 
     @Override
+    @TraceNode(name = "query-rewrite", type = "REWRITE")
     public String rewrite(String userQuestion, List<ChatMessage> history) {
         if (StrUtil.isBlank(userQuestion)) {
             return userQuestion;

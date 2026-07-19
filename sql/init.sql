@@ -89,3 +89,47 @@ CREATE TABLE t_document (
                             KEY idx_status (status),
                             KEY idx_create_time (create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='文档表';
+
+CREATE TABLE t_trace_run (
+                             id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                             trace_id VARCHAR(64) NOT NULL COMMENT '全局链路ID',
+                             trace_name VARCHAR(64) DEFAULT '' COMMENT '链路名称',
+                             entry_method VARCHAR(128) DEFAULT '' COMMENT '入口方法',
+                             session_id VARCHAR(64) DEFAULT NULL COMMENT '会话ID',
+                             user_id VARCHAR(64) DEFAULT NULL COMMENT '用户ID',
+                             status VARCHAR(16) NOT NULL DEFAULT 'RUNNING' COMMENT 'RUNNING/SUCCESS/ERROR',
+                             error_message VARCHAR(1000) DEFAULT NULL COMMENT '错误信息',
+                             question TEXT COMMENT '用户问题',
+                             ttft_ms BIGINT DEFAULT NULL COMMENT '首包耗时(ms)',
+                             start_time DATETIME NOT NULL COMMENT '开始时间',
+                             end_time DATETIME DEFAULT NULL COMMENT '结束时间',
+                             duration_ms BIGINT DEFAULT NULL COMMENT '总耗时(ms)',
+                             create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                             update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                             deleted TINYINT DEFAULT 0,
+                             INDEX idx_trace_id (trace_id),
+                             INDEX idx_session_id (session_id),
+                             INDEX idx_start_time (start_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='链路运行记录表';
+
+CREATE TABLE t_trace_node (
+                              id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                              trace_id VARCHAR(64) NOT NULL COMMENT '关联traceId',
+                              node_id VARCHAR(64) NOT NULL COMMENT '节点ID',
+                              parent_node_id VARCHAR(64) DEFAULT NULL COMMENT '父节点ID',
+                              depth INT DEFAULT 0 COMMENT '节点深度',
+                              node_type VARCHAR(32) DEFAULT 'METHOD' COMMENT '节点类型',
+                              node_name VARCHAR(128) DEFAULT '' COMMENT '节点名称',
+                              class_name VARCHAR(256) DEFAULT NULL COMMENT '类名',
+                              method_name VARCHAR(128) DEFAULT NULL COMMENT '方法名',
+                              status VARCHAR(16) NOT NULL DEFAULT 'RUNNING' COMMENT 'RUNNING/SUCCESS/ERROR',
+                              error_message VARCHAR(1000) DEFAULT NULL COMMENT '错误信息',
+                              start_time DATETIME NOT NULL COMMENT '开始时间',
+                              end_time DATETIME DEFAULT NULL COMMENT '结束时间',
+                              duration_ms BIGINT DEFAULT NULL COMMENT '耗时(ms)',
+                              create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                              update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                              deleted TINYINT DEFAULT 0,
+                              INDEX idx_trace_id (trace_id),
+                              INDEX idx_node_id (node_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='链路节点记录表';

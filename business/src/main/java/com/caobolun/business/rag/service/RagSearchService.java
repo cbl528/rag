@@ -7,6 +7,7 @@ import com.caobolun.ai.rag.store.VectorStoreService;
 import com.caobolun.business.rag.dao.entity.KnowledgeChunkDO;
 import com.caobolun.business.rag.dao.mapper.KnowledgeChunkMapper;
 import com.caobolun.business.rag.rerank.RerankService;
+import com.caobolun.framework.trace.TraceNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -46,6 +47,7 @@ public class RagSearchService {
      * @param query 用户问题（已改写，代词已替换）
      * @return 拼好的 context 文本，可直接插入 system prompt
      */
+    @TraceNode(name = "rag-search", type = "RETRIEVE")
     public String searchAsContext(String query) {
         List<RetrievedChunk> chunks = search(query);
         if (chunks.isEmpty()) {

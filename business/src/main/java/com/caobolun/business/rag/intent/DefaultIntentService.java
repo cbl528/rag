@@ -3,6 +3,7 @@ package com.caobolun.business.rag.intent;
 import cn.hutool.core.util.StrUtil;
 import com.caobolun.ai.client.OpenAICompatibleClient;
 import com.caobolun.framework.convention.ChatMessage;
+import com.caobolun.framework.trace.TraceNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,7 @@ public class DefaultIntentService implements IntentService {
     private final ObjectMapper objectMapper;
 
     @Override
+    @TraceNode(name = "intent-detect", type = "INTENT")
     public IntentResult detect(String userQuestion) {
         // 1. 空安全
         if (StrUtil.isBlank(userQuestion)) {

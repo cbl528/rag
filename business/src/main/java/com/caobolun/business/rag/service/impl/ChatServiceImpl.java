@@ -10,10 +10,10 @@ import com.caobolun.business.rag.memory.ConversationMemoryService;
 import com.caobolun.business.rag.rewrite.QueryRewriteService;
 import com.caobolun.business.rag.service.ChatService;
 import com.caobolun.business.rag.service.RagSearchService;
+import com.caobolun.business.rag.trace.StreamTraceRunner;
 import com.caobolun.framework.callback.StreamCallback;
 import com.caobolun.framework.convention.ChatMessage;
 import com.caobolun.framework.web.SseEmitterSender;
-import io.milvus.param.R;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,6 +33,7 @@ public class ChatServiceImpl implements ChatService {
     private final RagSearchService ragSearchService; // rag检索服务
     private final QueryRewriteService queryRewriteService; // 查询重写服务
     private final IntentService intentService; // 意图识别服务
+    private final StreamTraceRunner traceRunner; // 链路追踪
     // 引入动态线程池
     private final Executor chatStreamExecutor;      // SSE 流式专用
     private final Executor asyncTaskExecutor;        // fire-and-forget 任务
@@ -48,6 +49,9 @@ public class ChatServiceImpl implements ChatService {
         // 2. 先告诉前端本次会话 ID
         sender.sendEvent("session", actualSessionId);
         ChatMessage userMsg = ChatMessage.user(userMessage);
+
+        // 3. 启动链路追踪
+        StreamTraceRunner.TraceSession traceSession = traceRunner.startRun(userMessage, actualSessionId);
 
         CompletableFuture
                 // 1. 加载历史 + 保存用户信息
@@ -100,12 +104,17 @@ public class ChatServiceImpl implements ChatService {
                         public void onContent(String content) {
                             fullAnswer.append(content);
                             sender.sendEvent("message", content);
+                            // 首包到达时记录 TTFT（仅在第一次触发）
+                            if (fullAnswer.length() == content.length()) {
+                                traceSession.onFirstContent();
+                            }
                         }
 
                         @Override
                         public void onComplete() {
                             memoryService.append(ctx.actualSessionId,
                                     ChatMessage.assistant(fullAnswer.toString()));
+                            traceSession.onComplete(); // 链路正常结束
                             sender.sendEvent("done", "[DONE]");
                             sender.complete();
                         }
@@ -113,17 +122,16 @@ public class ChatServiceImpl implements ChatService {
                         @Override
                         public void onError(Throwable error) {
                             log.error("流式调用失败", error);
+                            traceSession.onError(error); // 链路异常结束
                             sender.fail(error);
                         }
                     });
                 }, chatStreamExecutor)
                 .exceptionally(e -> {
                     log.error("流式对话异常", e);
-                    if (e.getCause() != null) {
-                        sender.fail(new RuntimeException(e.getCause()));
-                    } else {
-                        sender.fail(new RuntimeException(e));
-                    }
+                    Throwable cause = e.getCause() != null ? e.getCause() : e;
+                    traceSession.onError(cause); // 管道异常时链路兜底结束
+                    sender.fail(new RuntimeException(cause));
                     return null;
                 });
 
