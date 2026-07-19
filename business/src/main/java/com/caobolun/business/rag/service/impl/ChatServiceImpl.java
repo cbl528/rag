@@ -3,6 +3,9 @@ package com.caobolun.business.rag.service.impl;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.caobolun.ai.client.OpenAICompatibleClient;
+import com.caobolun.business.rag.intent.IntentResult;
+import com.caobolun.business.rag.intent.IntentService;
+import com.caobolun.business.rag.intent.IntentType;
 import com.caobolun.business.rag.memory.ConversationMemoryService;
 import com.caobolun.business.rag.rewrite.QueryRewriteService;
 import com.caobolun.business.rag.service.ChatService;
@@ -10,6 +13,7 @@ import com.caobolun.business.rag.service.RagSearchService;
 import com.caobolun.framework.callback.StreamCallback;
 import com.caobolun.framework.convention.ChatMessage;
 import com.caobolun.framework.web.SseEmitterSender;
+import io.milvus.param.R;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,10 +28,11 @@ import java.util.concurrent.Executor;
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
 
-    private final OpenAICompatibleClient openAICompatibleClient;
-    private final ConversationMemoryService memoryService;
-    private final RagSearchService ragSearchService;
-    private final QueryRewriteService queryRewriteService;
+    private final OpenAICompatibleClient openAICompatibleClient; // 大模型调用客户端
+    private final ConversationMemoryService memoryService; // 记忆管理服务
+    private final RagSearchService ragSearchService; // rag检索服务
+    private final QueryRewriteService queryRewriteService; // 查询重写服务
+    private final IntentService intentService; // 意图识别服务
     // 引入动态线程池
     private final Executor chatStreamExecutor;      // SSE 流式专用
     private final Executor asyncTaskExecutor;        // fire-and-forget 任务
@@ -56,13 +61,20 @@ public class ChatServiceImpl implements ChatService {
                     }
                     return new ChatContext(userMsg, history, history.isEmpty(), actualSessionId);
                 }, chatStreamExecutor)
-                // 2. 执行查询改写
+                // 2. 意图识别 → 按需改写 + 检索
                 .thenApplyAsync(ctx -> {
-                    ctx.searchQuery = queryRewriteService.rewrite(userMessage, ctx.history);
+                    ctx.intentResult = intentService.detect(userMessage);
+                    if (ctx.intentResult.getIntentType() == IntentType.KB_QUERY) {
+                        ctx.searchQuery = queryRewriteService.rewrite(userMessage, ctx.history);
+                    }
                     return ctx;
                 }, llmSyncExecutor)
                 .thenApplyAsync(ctx -> {
-                    ctx.ragContext = ragSearchService.searchAsContext(ctx.searchQuery);
+                    if (ctx.intentResult.getIntentType() == IntentType.KB_QUERY) {
+                        ctx.ragContext = ragSearchService.searchAsContext(ctx.searchQuery);
+                    } else {
+                        ctx.ragContext = "";
+                    }
                     return ctx;
                 }, ragSearchExecutor)
                 .thenAcceptAsync(ctx -> {
@@ -72,6 +84,9 @@ public class ChatServiceImpl implements ChatService {
                                 "请基于以下提供的知识库文档片段回答用户问题。" +
                                 "如果文档片段不足以回答问题，如实告知用户你不知道，" +
                                 "不要编造信息。\n\n" + ctx.ragContext));
+                    } else if (ctx.intentResult.getIntentType() == IntentType.CHITCHAT) {
+                        messages.add(ChatMessage.system("你是一个友好的AI助手，可以进行日常对话。" +
+                                "请用自然、友好的语气回应用户。"));
                     }
                     if (!ctx.historyEmpty) {
                         // 将历史会话添加到聊天信息
@@ -143,6 +158,7 @@ public class ChatServiceImpl implements ChatService {
         final List<ChatMessage> history;
         final boolean historyEmpty;
         final String actualSessionId;
+        IntentResult intentResult;
         String searchQuery;
         String ragContext;
     }
