@@ -38,6 +38,7 @@ public class SystemConfigServiceImpl implements SystemConfigService {
             new KnownConfig("rag.rerank.enabled", "rag", "重排序开关", "false"),
             new KnownConfig("rag.rerank.candidate-top-k", "rag", "Milvus 多取候选数", "20"),
             new KnownConfig("rag.rerank.final-top-k", "rag", "最终保留给 LLM 的段落数", "5"),
+            new KnownConfig("rag.rerank.model", "rag", "重排序模型名", "Qwen/Qwen3-Reranker-0.6B"),
             new KnownConfig("rag.trace.enabled", "rag", "链路追踪开关", "true"),
             new KnownConfig("rag.sse-timeout-ms", "rag", "SSE 流式超时时间(毫秒)", "300000"),
 

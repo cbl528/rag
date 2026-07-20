@@ -29,6 +29,7 @@ INSERT INTO t_system_config (config_key, config_value, config_group, description
 ('rag.rerank.enabled',       'false', 'rag', '重排序开关，开启后对检索结果进行精排', 0),
 ('rag.rerank.candidate-top-k', '20', 'rag', 'Milvus 多取候选数，越大召回越全但越慢', 0),
 ('rag.rerank.final-top-k',    '5',   'rag', '最终保留给 LLM 的段落数', 0),
+('rag.rerank.model',         'Qwen/Qwen3-Reranker-0.6B', 'rag', '重排序模型名', 0),
 ('rag.trace.enabled',        'true', 'rag', '链路追踪开关，记录每次对话的 RAG 调用链路', 0),
 ('rag.sse-timeout-ms',       '300000', 'rag', 'SSE 流式超时时间（毫秒）', 0),
 
