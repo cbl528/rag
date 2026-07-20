@@ -14,6 +14,7 @@ import UploadDoc from './pages/admin/UploadDoc'
 import UserManage from './pages/admin/UserManage'
 import TraceList from './pages/admin/TraceList'
 import TraceDetail from './pages/admin/TraceDetail'
+import SampleQuestions from './pages/admin/SampleQuestions'
 
 // ---------- 路由守卫 ----------
 function ProtectedRoute({ children }) {
@@ -318,6 +319,7 @@ export default function App() {
                   <Route path="upload" element={<UploadDoc />} />
                   <Route path="traces" element={<TraceList />} />
                   <Route path="traces/:traceId" element={<TraceDetail />} />
+                  <Route path="sample-questions" element={<SampleQuestions />} />
                   <Route path="users" element={<UserManage />} />
                   <Route path="*" element={<Navigate to="/admin" replace />} />
                 </Routes>

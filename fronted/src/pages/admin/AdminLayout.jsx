@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { Home, Upload, Users, Activity, ArrowLeft, ChevronRight } from 'lucide-react'
+import { Home, Upload, Users, Activity, MessageSquare, ArrowLeft, ChevronRight } from 'lucide-react'
 
 const navItems = [
   { path: '/admin', label: '首页', icon: Home },
   { path: '/admin/upload', label: '文档上传', icon: Upload },
   { path: '/admin/traces', label: '链路追踪', icon: Activity },
+  { path: '/admin/sample-questions', label: '建议问题', icon: MessageSquare },
   { path: '/admin/users', label: '用户管理', icon: Users },
 ]
 

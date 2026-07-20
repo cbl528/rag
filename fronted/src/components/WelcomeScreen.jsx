@@ -1,13 +1,16 @@
+import { useState, useEffect } from 'react'
 import { Sparkles } from 'lucide-react'
-
-const suggestions = [
-  '帮我解释什么是 RAG 技术',
-  '如何优化文档分块策略',
-  '中文 Embedding 模型推荐',
-  '设计一个知识检索流程',
-]
+import { http } from '../utils/http'
 
 export default function WelcomeScreen({ onSelectSuggestion }) {
+  const [suggestions, setSuggestions] = useState([])
+
+  useEffect(() => {
+    http.get('/api/v1/sample-questions')
+      .then(data => setSuggestions(data || []))
+      .catch(() => { /* 静默失败，保留空列表 */ })
+  }, [])
+
   return (
     <div className="flex flex-col items-center justify-center h-full px-4">
       {/* Logo */}
@@ -25,20 +28,22 @@ export default function WelcomeScreen({ onSelectSuggestion }) {
       </h1>
 
       {/* Suggestion Cards */}
-      <div className="grid grid-cols-2 gap-3 max-w-[640px] w-full">
-        {suggestions.map((s) => (
-          <button
-            key={s}
-            className="text-left px-5 py-3.5 rounded-xl text-[14px] leading-snug transition-colors duration-150
-              border border-[#e5e5e5] dark:border-[#333]
-              text-[var(--color-text-secondary)] dark:text-[var(--color-text-secondary-dark)]
-              hover:bg-[#f5f5f5] dark:hover:bg-[#1a1a1a]"
-            onClick={() => onSelectSuggestion?.(s)}
-          >
-            {s}
-          </button>
-        ))}
-      </div>
+      {suggestions.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 max-w-[640px] w-full">
+          {suggestions.map((s) => (
+            <button
+              key={s.id}
+              className="text-left px-5 py-3.5 rounded-xl text-[14px] leading-snug transition-colors duration-150
+                border border-[#e5e5e5] dark:border-[#333]
+                text-[var(--color-text-secondary)] dark:text-[var(--color-text-secondary-dark)]
+                hover:bg-[#f5f5f5] dark:hover:bg-[#1a1a1a]"
+              onClick={() => onSelectSuggestion?.(s.question)}
+            >
+              {s.title}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
