@@ -35,26 +35,40 @@ public class SystemConfigServiceImpl implements SystemConfigService {
      */
     private static final List<KnownConfig> KNOWN_CONFIGS = List.of(
             // ===== 检索配置 =====
-            new KnownConfig("rag.rerank.enabled", "rag", "重排序开关", "false"),
-            new KnownConfig("rag.rerank.candidate-top-k", "rag", "Milvus 多取候选数", "20"),
-            new KnownConfig("rag.rerank.final-top-k", "rag", "最终保留给 LLM 的段落数", "5"),
-            new KnownConfig("rag.rerank.model", "rag", "重排序模型名", "Qwen/Qwen3-Reranker-0.6B"),
-            new KnownConfig("rag.trace.enabled", "rag", "链路追踪开关", "true"),
-            new KnownConfig("rag.sse-timeout-ms", "rag", "SSE 流式超时时间(毫秒)", "300000"),
+            new KnownConfig("rag.rerank.enabled", "rag", "重排序开关", "false",
+                    "开启后，系统会对检索到的段落进行二次排序，将最相关的结果排在前面"),
+            new KnownConfig("rag.trace.enabled", "rag", "链路追踪开关", "true",
+                    "开启后记录每次检索的详细链路信息，方便调试和排查问题"),
+            new KnownConfig("rag.rerank.candidate-top-k", "rag", "检索结果候选数", "20",
+                    "从向量数据库中多取一些候选段落供排序挑选，值越大效果越好但速度会慢一些"),
+            new KnownConfig("rag.rerank.final-top-k", "rag", "检索结果保留数", "5",
+                    "经过排序后最终送入大模型作为参考的最相关段落数量"),
+            new KnownConfig("rag.sse-timeout-ms", "rag", "SSE 流式超时时间(毫秒)", "300000",
+                    "大模型流式响应的最长等待时间，超时后连接将自动断开"),
 
             // ===== 模型配置 =====
-            new KnownConfig("openai.model", "model", "对话 LLM 模型", "Qwen/Qwen3-8B"),
-            new KnownConfig("openai.embedding-model", "model", "Embedding 向量化模型", "BAAI/bge-large-zh-v1.5"),
-            new KnownConfig("ollama.model", "model", "Ollama 本地模型", "deepseek-r1:1.5b"),
+            new KnownConfig("openai.model", "model", "对话 LLM 模型", "Qwen/Qwen3-8B",
+                    "用于生成对话回复的模型，需与 API 服务商提供的模型名一致"),
+            new KnownConfig("openai.embedding-model", "model", "Embedding 向量化模型", "BAAI/bge-large-zh-v1.5",
+                    "将文档和用户问题转化为语义向量的模型，用于后续的相似度检索"),
+            new KnownConfig("ollama.model", "model", "Ollama 本地模型", "deepseek-r1:1.5b",
+                    "本地部署的 Ollama 模型名称，用于离线环境下的对话生成"),
+            new KnownConfig("rag.rerank.model", "model", "重排序模型名", "Qwen/Qwen3-Reranker-0.6B",
+                    "用于对检索结果进行相关性评分的模型，一般使用专门的 Reranker 模型"),
 
             // ===== 向量数据库 =====
-            new KnownConfig("milvus.host", "milvus", "Milvus 地址", "124.221.110.104"),
-            new KnownConfig("milvus.port", "milvus", "Milvus 端口", "19530"),
-            new KnownConfig("milvus.collection-name", "milvus", "Milvus 集合名", "rag_knowledge"),
-            new KnownConfig("milvus.dimension", "milvus", "向量维度", "1024"),
+            new KnownConfig("milvus.host", "milvus", "Milvus 地址", "124.221.110.104",
+                    "向量数据库 Milvus 的服务地址，用于存储和检索文档向量"),
+            new KnownConfig("milvus.port", "milvus", "Milvus 端口", "19530",
+                    "向量数据库 Milvus 的服务端口，默认 19530"),
+            new KnownConfig("milvus.collection-name", "milvus", "Milvus 集合名", "rag_knowledge",
+                    "Milvus 中存储文档向量的集合（相当于关系数据库中的表）"),
+            new KnownConfig("milvus.dimension", "milvus", "向量维度", "1024",
+                    "每个文本向量的维度数，需与 Embedding 模型输出的维度一致"),
 
             // ===== 上传配置 =====
-            new KnownConfig("spring.servlet.multipart.max-file-size", "upload", "最大上传文件大小", "50MB")
+            new KnownConfig("spring.servlet.multipart.max-file-size", "upload", "最大上传文件大小", "50MB",
+                    "单次上传文档的大小上限，超过此大小的文件将被拒绝")
     );
 
     private static final Map<String, String> GROUP_LABELS = Map.of(
@@ -95,6 +109,7 @@ public class SystemConfigServiceImpl implements SystemConfigService {
                     .value(effectiveValue)
                     .defaultValue(staticValue)
                     .description(known.description)
+                    .explanation(known.explanation)
                     .dbOverride(dbOverride)
                     .dbConfigId(dbConfig != null ? dbConfig.getId() : null)
                     .dbEnabled(dbEnabled)
@@ -222,6 +237,6 @@ public class SystemConfigServiceImpl implements SystemConfigService {
     /**
      * 已知配置元数据
      */
-    private record KnownConfig(String key, String group, String description, String defaultValue) {
+    private record KnownConfig(String key, String group, String description, String defaultValue, String explanation) {
     }
 }

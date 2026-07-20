@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   Settings, MessageSquare, Layers, ArrowUpDown,
-  Plus, X, Loader2, ToggleLeft, ToggleRight,
+  X, Loader2, ToggleLeft, ToggleRight,
 } from 'lucide-react'
 import { http } from '../../utils/http'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -16,15 +16,6 @@ function findItem(settings, key) {
     }
   }
   return null
-}
-
-function findDbItem(settings, key) {
-  return settings?.dbConfigs?.find(d => d.configKey === key) || null
-}
-
-function safeJsonParse(str, fallback) {
-  try { return JSON.parse(str) }
-  catch { return fallback }
 }
 
 /* ====================== 常量 ====================== */
@@ -45,8 +36,6 @@ const MODEL_DEFS = [
     icon: MessageSquare,
     desc: '用于对话生成的 LLM 模型',
     accent: 'blue',
-    presetKey: '_preset.openai.model',
-    defaultPresets: ['Qwen/Qwen3-8B', 'deepseek-chat', 'gpt-4o'],
   },
   {
     key: 'openai.embedding-model',
@@ -54,8 +43,6 @@ const MODEL_DEFS = [
     icon: Layers,
     desc: '用于文档向量化的 Embedding 模型',
     accent: 'emerald',
-    presetKey: '_preset.openai.embedding-model',
-    defaultPresets: ['BAAI/bge-large-zh-v1.5', 'text-embedding-3-small'],
   },
   {
     key: 'rag.rerank.enabled',
@@ -63,32 +50,14 @@ const MODEL_DEFS = [
     icon: ArrowUpDown,
     desc: '对检索结果重排序，提升相关性',
     accent: 'amber',
-    presetKey: '_preset.rag.rerank.model',
-    defaultPresets: ['Qwen/Qwen3-Reranker-0.6B', 'BAAI/bge-reranker-v2-m3'],
-    /** 实际存储模型名的配置键（不同于启用开关） */
     modelKey: 'rag.rerank.model',
   },
 ]
 
 const ACCENT_STYLES = {
-  blue: {
-    icon: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300',
-    chip: 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-200',
-    chipActive: 'bg-blue-600 text-white border-blue-600',
-    toggle: 'bg-blue-600',
-  },
-  emerald: {
-    icon: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300',
-    chip: 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-200',
-    chipActive: 'bg-emerald-600 text-white border-emerald-600',
-    toggle: 'bg-emerald-600',
-  },
-  amber: {
-    icon: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-300',
-    chip: 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-200',
-    chipActive: 'bg-amber-600 text-white border-amber-600',
-    toggle: 'bg-amber-600',
-  },
+  blue: { icon: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300', toggle: 'bg-blue-600' },
+  emerald: { icon: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300', toggle: 'bg-emerald-600' },
+  amber: { icon: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-300', toggle: 'bg-amber-600' },
 }
 
 /* ====================== 主组件 ====================== */
@@ -98,24 +67,18 @@ export default function SystemSettings() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  // 添加预设弹窗
-  const [addTarget, setAddTarget] = useState(null) // modelDef
-  const [addValue, setAddValue] = useState('')
-  const [addOpen, setAddOpen] = useState(false)
-  const [saving, setSaving] = useState(false)
-
-  // 编辑配置弹窗（配置总览用）
+  // 编辑弹窗（配置总览 + 模型卡片共用）
   const [editItem, setEditItem] = useState(null)
   const [editValue, setEditValue] = useState('')
   const [editOpen, setEditOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   // ===== 数据加载 =====
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const data = await http.get('/api/v1/admin/settings')
-      setSettings(data)
+      setSettings(await http.get('/api/v1/admin/settings'))
     } catch (e) {
       setError(e.message || '加载失败')
     } finally {
@@ -125,61 +88,6 @@ export default function SystemSettings() {
 
   useEffect(() => { load() }, [load])
 
-  // ===== 获取预设列表（DB 兜底默认值） =====
-  const getPresets = useCallback((def) => {
-    const dbItem = findDbItem(settings, def.presetKey)
-    if (dbItem && dbItem.configValue) {
-      const parsed = safeJsonParse(dbItem.configValue, null)
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed
-    }
-    return def.defaultPresets
-  }, [settings])
-
-  // ===== 保存预设列表到 DB =====
-  const savePresets = async (def, presets) => {
-    const dbItem = findDbItem(settings, def.presetKey)
-    const body = {
-      configKey: def.presetKey,
-      configValue: JSON.stringify(presets),
-      configGroup: 'model',
-      description: `${def.label}预设列表`,
-    }
-    if (dbItem) {
-      await http.put(`/api/v1/admin/system-configs/${dbItem.id}`, { configValue: body.configValue })
-    } else {
-      await http.post('/api/v1/admin/system-configs', body)
-    }
-  }
-
-  // ===== 设置活跃模型 =====
-  const setActiveModel = async (def, modelName) => {
-    const targetKey = def.modelKey || def.key
-    const dbItem = findDbItem(settings, targetKey)
-    if (dbItem) {
-      await http.put(`/api/v1/admin/system-configs/${dbItem.id}`, { configValue: modelName })
-    } else {
-      const item = findItem(settings, targetKey)
-      await http.post('/api/v1/admin/system-configs', {
-        configKey: targetKey,
-        configValue: modelName,
-        configGroup: targetKey.startsWith('rag') ? 'rag' : 'model',
-        description: item?.description || '',
-      })
-    }
-    await load()
-  }
-
-  // ===== 获取当前活跃模型名 =====
-  const getActiveModel = (def) => {
-    if (def.modelKey) {
-      const item = findItem(settings, def.modelKey)
-      return item?.value || ''
-    }
-    const item = findItem(settings, def.key)
-    // 如果启用开关的值为 true，说明活跃值为 modelKey 的值
-    return item?.value || ''
-  }
-
   // ===== 检查模型是否启用（DB 覆盖） =====
   const isModelEnabled = (def) => {
     const item = findItem(settings, def.key)
@@ -188,7 +96,7 @@ export default function SystemSettings() {
     return item.dbEnabled
   }
 
-  // ===== 切换启用/禁用 =====
+  // ===== 模型卡片：切换启用/禁用 =====
   const handleToggle = async (def) => {
     const item = findItem(settings, def.key)
     if (!item) return
@@ -198,7 +106,7 @@ export default function SystemSettings() {
       } else {
         await http.post('/api/v1/admin/system-configs', {
           configKey: item.key,
-          configValue: def.defaultPresets?.[0] || item.defaultValue,
+          configValue: item.defaultValue,
           configGroup: def.key.startsWith('rag') ? 'rag' : 'model',
           description: item.description || '',
         })
@@ -209,71 +117,17 @@ export default function SystemSettings() {
     }
   }
 
-  // ===== 点击预设芯片 =====
-  const handleSelectPreset = async (def, modelName) => {
-    try {
-      await setActiveModel(def, modelName)
-    } catch (e) {
-      setError(e.message || '切换失败')
-    }
-  }
-
-  // ===== 删除预设 =====
-  const handleRemovePreset = async (def, modelName) => {
-    const presets = getPresets(def)
-    if (presets.length <= 1) return // 至少保留一个
-    const newPresets = presets.filter(p => p !== modelName)
-    try {
-      await savePresets(def, newPresets)
-      // 如果删除的是当前活跃的，切换到第一个
-      const active = getActiveModel(def)
-      if (active === modelName && newPresets.length > 0) {
-        await setActiveModel(def, newPresets[0])
-      } else {
-        await load()
-      }
-    } catch (e) {
-      setError(e.message || '删除失败')
-    }
-  }
-
-  // ===== 打开添加弹窗 =====
-  const openAdd = (def) => {
-    setAddTarget(def)
-    setAddValue('')
-    setAddOpen(true)
-  }
-
-  // ===== 确认添加 =====
-  const handleAddConfirm = async () => {
-    if (!addValue.trim() || !addTarget) return
-    const def = addTarget
-    const name = addValue.trim()
-    const presets = getPresets(def)
-    if (presets.includes(name)) {
-      setError(`「${name}」已存在`)
-      return
-    }
-    setSaving(true)
-    try {
-      const newPresets = [...presets, name]
-      await savePresets(def, newPresets)
-      setAddOpen(false)
-      await load()
-    } catch (e) {
-      setError(e.message || '添加失败')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  // ===== 配置总览：编辑值 =====
-  const openEdit = (item) => {
-    setEditItem(item)
+  // ===== 模型卡片：打开修改弹窗 =====
+  const openModelEdit = (def) => {
+    const targetKey = def.modelKey || def.key
+    const item = findItem(settings, targetKey)
+    if (!item) return
+    setEditItem({ key: targetKey, value: item.value, dbConfigId: item.dbConfigId, description: item.description })
     setEditValue(item.value)
     setEditOpen(true)
   }
 
+  // ===== 通用：保存编辑值 =====
   const handleEditSave = async () => {
     if (!editValue.trim() || !editItem) return
     setSaving(true)
@@ -298,6 +152,13 @@ export default function SystemSettings() {
     } finally {
       setSaving(false)
     }
+  }
+
+  // ===== 配置总览：编辑值 =====
+  const openEdit = (item) => {
+    setEditItem(item)
+    setEditValue(item.value)
+    setEditOpen(true)
   }
 
   // ===== 配置总览：创建覆盖 =====
@@ -346,7 +207,7 @@ export default function SystemSettings() {
       <div className="px-8 py-4 shrink-0">
         <h1 className="text-xl font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">系统设置</h1>
         <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1">
-          查看当前系统配置，管理 AI 模型预设
+          查看当前系统配置，管理 AI 模型
         </p>
       </div>
 
@@ -386,7 +247,7 @@ export default function SystemSettings() {
                     <div key={item.key} className="px-4 py-3">
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
                               {item.description}
                             </span>
@@ -406,9 +267,11 @@ export default function SystemSettings() {
                               </span>
                             )}
                           </div>
-                          <code className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 block">
-                            {item.key}
-                          </code>
+                          {item.explanation && (
+                            <p className="text-[12px] text-gray-400 dark:text-gray-500 leading-relaxed mt-1">
+                              {item.explanation}
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <code className="text-[13px] px-2.5 py-1 rounded-lg bg-[#f5f5f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] font-mono">
@@ -455,165 +318,108 @@ export default function SystemSettings() {
         </section>
 
         {/* ================================================================ */}
-        {/*  二、模型配置（预设列表）                                           */}
+        {/*  二、模型配置（三张卡片）                                          */}
         {/* ================================================================ */}
         <section>
           <div className="flex items-center gap-2 mb-4">
             <Settings size={18} className="text-gray-500" />
             <h2 className="text-[16px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">模型配置</h2>
-            <span className="text-[12px] text-gray-400 dark:text-gray-500">
-              点击预设快速切换，可自行添加常用模型
-            </span>
           </div>
 
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {MODEL_DEFS.map((def) => {
-              const presets = getPresets(def)
-              const activeModel = getActiveModel(def)
               const enabled = isModelEnabled(def)
               const accent = ACCENT_STYLES[def.accent]
               const Icon = def.icon
 
-              // 重排序的显示值
-              let displayValue = activeModel
+              // 获取显示值
+              const valueKey = def.modelKey || def.key
+              const valueItem = findItem(settings, valueKey)
+              let displayValue = valueItem?.value || '-'
               if (def.modelKey) {
                 const enableItem = findItem(settings, def.key)
                 displayValue = enableItem?.value === 'true'
-                  ? `已启用 · ${activeModel || '未配置'}`
+                  ? `已启用 · ${displayValue}`
                   : '未启用'
               }
 
               return (
                 <div
                   key={def.key}
-                  className="rounded-xl border border-[#e5e5e5] dark:border-[#333] bg-white dark:bg-[#1c1c1e] overflow-hidden"
+                  className="rounded-2xl border border-[#e5e5e5] dark:border-[#333]
+                             bg-white dark:bg-[#1c1c1e] overflow-hidden
+                             transition-all duration-200 hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/20"
                 >
-                  {/* ---- 头部行：图标 + 标签 + 切换开关 + 添加按钮 ---- */}
-                  <div className="flex items-center justify-between px-5 py-3 border-b border-[#e5e5e5] dark:border-[#222]">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${accent.icon}`}>
-                        <Icon size={16} />
+                  {/* ---- 头部：图标 + 标题 ---- */}
+                  <div className="p-5 pb-0">
+                    <div className="flex items-start gap-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${accent.icon}`}>
+                        <Icon size={20} />
                       </div>
-                      <div>
-                        <span className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                      <div className="min-w-0">
+                        <h3 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
                           {def.label}
-                        </span>
-                        <span className="text-[12px] text-gray-400 dark:text-gray-500 ml-2">{def.desc}</span>
+                        </h3>
+                        <p className="text-[12px] text-gray-400 dark:text-gray-500 mt-0.5">
+                          {def.desc}
+                        </p>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {/* 切换开关 */}
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={enabled}
-                        onClick={() => handleToggle(def)}
-                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full
-                                    transition-colors duration-200
-                                    ${enabled ? accent.toggle : 'bg-gray-200 dark:bg-[#444]'}`}
-                      >
-                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform duration-200
-                                        ${enabled ? 'translate-x-[19px]' : 'translate-x-[3px]'}`} />
-                      </button>
-                      {/* 添加按钮 */}
-                      <button
-                        onClick={() => openAdd(def)}
-                        className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-medium rounded-lg
-                                   text-blue-600 dark:text-blue-400
-                                   bg-blue-50 dark:bg-blue-900/20
-                                   hover:bg-blue-100 dark:hover:bg-blue-900/30
-                                   transition-colors"
-                      >
-                        <Plus size={13} />
-                        添加模型
-                      </button>
                     </div>
                   </div>
 
-                  {/* ---- 预设芯片列表 ---- */}
-                  <div className="px-5 py-3">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {presets.map((name) => {
-                        const isActive = name === activeModel
-                        return (
-                          <span
-                            key={name}
-                            onClick={() => handleSelectPreset(def, name)}
-                            className={`
-                              inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] cursor-pointer
-                              border transition-all duration-150
-                              ${isActive
-                                ? accent.chipActive + ' shadow-sm'
-                                : accent.chip + ' hover:opacity-80'
-                              }
-                            `}
-                          >
-                            {isActive && <Check size={12} className="shrink-0" />}
-                            {name}
-                            {presets.length > 1 && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleRemovePreset(def, name) }}
-                                className="ml-0.5 rounded-full p-0.5 hover:bg-black/10 dark:hover:bg-white/10
-                                           opacity-60 hover:opacity-100 transition-opacity"
-                              >
-                                <X size={11} />
-                              </button>
-                            )}
-                          </span>
-                        )
-                      })}
+                  {/* ---- 值展示区 ---- */}
+                  <div className="mx-5 mt-4 mb-4 px-4 py-3 rounded-xl
+                                  bg-[#f5f5f7] dark:bg-[#222]
+                                  border border-[#e5e5e5] dark:border-[#2a2a2a]">
+                    <div className="text-[11px] text-gray-400 dark:text-gray-500 mb-1 font-medium uppercase tracking-wide">
+                      {def.modelKey ? '状态' : '当前模型'}
                     </div>
-                    {/* 当前活跃值提示 */}
-                    {def.modelKey ? (
-                      <div className="mt-2 text-[12px] text-gray-400 dark:text-gray-500">
-                        状态：{displayValue}
-                      </div>
-                    ) : (
-                      <div className="mt-2 text-[12px] text-gray-400 dark:text-gray-500">
-                        当前：{displayValue}
-                      </div>
-                    )}
+                    <div className="text-[14px] font-mono font-medium text-[#1d1d1f] dark:text-[#f5f5f7] truncate">
+                      {displayValue}
+                    </div>
+                  </div>
+
+                  {/* ---- 操作区：切换 + 修改 ---- */}
+                  <div className="px-5 pb-5 flex items-center justify-between">
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={enabled}
+                      onClick={() => handleToggle(def)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full
+                                  transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2
+                                  focus-visible:ring-offset-2 focus-visible:ring-[#1d1d1f] dark:focus-visible:ring-[#f5f5f7]
+                                  ${enabled ? accent.toggle : 'bg-gray-200 dark:bg-[#444]'}`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200
+                                    ${enabled ? 'translate-x-[22px]' : 'translate-x-[3px]'}`}
+                      />
+                    </button>
+
+                    <button
+                      onClick={() => openModelEdit(def)}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium rounded-lg
+                                 text-gray-600 dark:text-gray-300
+                                 bg-gray-100 dark:bg-[#2c2c2e]
+                                 hover:bg-gray-200 dark:hover:bg-[#333]
+                                 active:scale-[0.97] transition-all duration-150"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                      </svg>
+                      修改
+                    </button>
                   </div>
                 </div>
               )
             })}
           </div>
-
-          <div className="mt-3 text-[12px] text-gray-400 dark:text-gray-500 text-center">
-            切换开关启用后，配置值将优先使用数据库中的值；点击预设名称即可切换当前使用的模型
-          </div>
         </section>
       </div>
 
       {/* ================================================================ */}
-      {/*  弹窗：添加模型预设                                                  */}
-      {/* ================================================================ */}
-      <ConfirmDialog
-        open={addOpen}
-        title={`添加${addTarget ? addTarget.label : ''}预设`}
-        confirmLabel="添加"
-        loading={saving}
-        onConfirm={handleAddConfirm}
-        onCancel={() => { setAddOpen(false); setError(null) }}
-      >
-        <input
-          type="text"
-          value={addValue}
-          onChange={(e) => setAddValue(e.target.value)}
-          placeholder="输入模型名称，如 gpt-4o"
-          onKeyDown={(e) => e.key === 'Enter' && !saving && handleAddConfirm()}
-          className="w-full px-4 py-2.5 text-[14px] rounded-xl
-                     bg-white dark:bg-[#1c1c1e]
-                     text-[#1d1d1f] dark:text-[#f5f5f7]
-                     placeholder:text-[#aeaeb2] dark:placeholder:text-[#636366]
-                     border border-[#e5e5e5] dark:border-[#333]
-                     focus:outline-none focus:border-[#1d1d1f] dark:focus:border-[#f5f5f7]
-                     transition-colors duration-200"
-        />
-      </ConfirmDialog>
-
-      {/* ================================================================ */}
-      {/*  弹窗：修改配置值（配置总览用）                                       */}
+      {/*  弹窗：修改配置值                                                 */}
       {/* ================================================================ */}
       <ConfirmDialog
         open={editOpen}
@@ -641,12 +447,3 @@ export default function SystemSettings() {
   )
 }
 
-/* ====================== 内联图标组件 ====================== */
-
-function Check({ size, className }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <polyline points="20 6 9 17 4 12"/>
-    </svg>
-  )
-}

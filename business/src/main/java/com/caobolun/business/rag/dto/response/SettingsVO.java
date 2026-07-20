@@ -46,8 +46,10 @@ public class SettingsVO {
         private String value;
         /** 静态配置默认值 */
         private String defaultValue;
-        /** 配置说明 */
+        /** 配置说明（简短标题） */
         private String description;
+        /** 配置解释（详细说明用途） */
+        private String explanation;
         /** 是否被 DB 覆盖 */
         private boolean dbOverride;
         /** DB 覆盖条目的 ID（为 null 表示无覆盖） */
