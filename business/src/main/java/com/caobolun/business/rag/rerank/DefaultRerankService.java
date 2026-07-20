@@ -3,6 +3,7 @@ package com.caobolun.business.rag.rerank;
 import com.caobolun.ai.config.RerankProperties;
 import com.caobolun.ai.rag.model.RetrievedChunk;
 import com.caobolun.ai.rag.rerank.RerankClient;
+import com.caobolun.framework.trace.TraceNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ public class DefaultRerankService implements RerankService {
     private final RerankClient noopRerankClient;
 
     @Override
+    @TraceNode(name = "rerank", type = "RERANK")
     public List<RetrievedChunk> rerank(String query, List<RetrievedChunk> candidates) {
         if (candidates == null || candidates.isEmpty()) {
             return List.of();

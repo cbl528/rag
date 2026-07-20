@@ -3,6 +3,7 @@ package com.caobolun.ai.client;
 import com.caobolun.ai.config.OpenAIProperties;
 import com.caobolun.framework.callback.StreamCallback;
 import com.caobolun.framework.convention.ChatMessage;
+import com.caobolun.framework.trace.TraceNode;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,6 +31,7 @@ public class OpenAICompatibleClient implements LlmClient {
     private final ObjectMapper objectMapper;
 
     @Override
+    @TraceNode(name = "llm-stream", type = "LLM")
     public void streamChat(List<ChatMessage> messages, StreamCallback callback) {
         doChat(messages, true, callback);
     }
