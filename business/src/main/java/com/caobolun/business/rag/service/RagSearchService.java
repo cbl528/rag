@@ -1,6 +1,5 @@
 package com.caobolun.business.rag.service;
 
-import com.caobolun.ai.config.RerankProperties;
 import com.caobolun.ai.rag.embedding.EmbeddingService;
 import com.caobolun.ai.rag.model.RetrievedChunk;
 import com.caobolun.ai.rag.store.VectorStoreService;
@@ -28,7 +27,7 @@ public class RagSearchService {
     private final VectorStoreService vectorStoreService;
     private final KnowledgeChunkMapper knowledgeChunkMapper;
     private final RerankService rerankService;
-    private final RerankProperties rerankProperties;
+    private final SystemConfigService systemConfigService;
 
     /**
      * 搜索与 query 最相关的文档片段
@@ -37,8 +36,11 @@ public class RagSearchService {
      * @return 检索到的文档片段列表（含完整文本）
      */
     public List<RetrievedChunk> search(String query) {
-        int candidateTopK = rerankProperties.isEnabled() ? rerankProperties.getCandidateTopK() : rerankProperties.getFinalTopK();
-        return search(query, candidateTopK);
+        boolean rerankEnabled = systemConfigService.getBoolean("rag.rerank.enabled", false);
+        int topK = rerankEnabled
+                ? systemConfigService.getInt("rag.rerank.candidate-top-k", 20)
+                : systemConfigService.getInt("rag.rerank.final-top-k", 5);
+        return search(query, topK);
     }
 
     /**

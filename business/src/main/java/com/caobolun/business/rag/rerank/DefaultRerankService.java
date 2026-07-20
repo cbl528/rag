@@ -1,8 +1,8 @@
 package com.caobolun.business.rag.rerank;
 
-import com.caobolun.ai.config.RerankProperties;
 import com.caobolun.ai.rag.model.RetrievedChunk;
 import com.caobolun.ai.rag.rerank.RerankClient;
+import com.caobolun.business.rag.service.SystemConfigService;
 import com.caobolun.framework.trace.TraceNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DefaultRerankService implements RerankService {
 
-    private final RerankProperties properties;
+    private final SystemConfigService systemConfigService;
     private final RerankClient httpRerankClient;
     private final RerankClient noopRerankClient;
 
@@ -37,9 +37,10 @@ public class DefaultRerankService implements RerankService {
             return List.of();
         }
 
-        int finalTopK = Math.max(1, properties.getFinalTopK());
+        boolean enabled = systemConfigService.getBoolean("rag.rerank.enabled", false);
+        int finalTopK = Math.max(1, systemConfigService.getInt("rag.rerank.final-top-k", 5));
 
-        if (properties.isEnabled()) {
+        if (enabled) {
             // 启用 Rerank — 后续接入真实 Rerank API 时替换此分支
             return doEnabledRerank(query, candidates, finalTopK);
         } else {

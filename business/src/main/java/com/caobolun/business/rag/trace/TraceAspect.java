@@ -4,6 +4,7 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.caobolun.business.rag.config.TraceProperties;
 import com.caobolun.business.rag.dao.entity.TraceNodeDO;
+import com.caobolun.business.rag.service.SystemConfigService;
 import com.caobolun.business.rag.service.TraceRecordService;
 import com.caobolun.framework.trace.TraceContext;
 import com.caobolun.framework.trace.TraceNode;
@@ -33,12 +34,12 @@ public class TraceAspect {
 
     private final TraceRecordService traceRecordService;
     private final TraceProperties traceProperties;
+    private final SystemConfigService systemConfigService;
 
     @Around("@annotation(traceNode)")
     public Object aroundNode(ProceedingJoinPoint joinPoint, TraceNode traceNode) throws Throwable {
-        // 如果未开启开启链路追踪
-        if (!traceProperties.isEnabled()) {
-            // 直接返回
+        // 如果未开启链路追踪（优先读取动态配置，回退到静态值）
+        if (!systemConfigService.getBoolean("rag.trace.enabled", traceProperties.isEnabled())) {
             return joinPoint.proceed();
         }
         // 获取当前链路ID
