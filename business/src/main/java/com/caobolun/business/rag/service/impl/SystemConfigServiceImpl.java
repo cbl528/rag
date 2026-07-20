@@ -47,9 +47,9 @@ public class SystemConfigServiceImpl implements SystemConfigService {
                     "大模型流式响应的最长等待时间，超时后连接将自动断开"),
 
             // ===== 模型配置 =====
-            new KnownConfig("openai.model", "model", "对话 LLM 模型", "Qwen/Qwen3-8B",
+            new KnownConfig("openai.model", "model", "对话模型名", "Qwen/Qwen3-8B",
                     "用于生成对话回复的模型，需与 API 服务商提供的模型名一致"),
-            new KnownConfig("openai.embedding-model", "model", "Embedding 向量化模型", "BAAI/bge-large-zh-v1.5",
+            new KnownConfig("openai.embedding-model", "model", "Embedding 模型名", "BAAI/bge-large-zh-v1.5",
                     "将文档和用户问题转化为语义向量的模型，用于后续的相似度检索"),
             new KnownConfig("ollama.model", "model", "Ollama 本地模型", "deepseek-r1:1.5b",
                     "本地部署的 Ollama 模型名称，用于离线环境下的对话生成"),
