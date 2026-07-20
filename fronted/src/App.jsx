@@ -15,6 +15,7 @@ import UserManage from './pages/admin/UserManage'
 import TraceList from './pages/admin/TraceList'
 import TraceDetail from './pages/admin/TraceDetail'
 import SampleQuestions from './pages/admin/SampleQuestions'
+import SystemSettings from './pages/admin/SystemSettings'
 
 // ---------- 路由守卫 ----------
 function ProtectedRoute({ children }) {
@@ -320,6 +321,7 @@ export default function App() {
                   <Route path="traces" element={<TraceList />} />
                   <Route path="traces/:traceId" element={<TraceDetail />} />
                   <Route path="sample-questions" element={<SampleQuestions />} />
+                  <Route path="settings" element={<SystemSettings />} />
                   <Route path="users" element={<UserManage />} />
                   <Route path="*" element={<Navigate to="/admin" replace />} />
                 </Routes>
