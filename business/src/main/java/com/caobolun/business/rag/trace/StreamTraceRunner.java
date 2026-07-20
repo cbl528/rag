@@ -95,10 +95,7 @@ public class StreamTraceRunner {
             if (!ttftRecorded.compareAndSet(false, true)) return;
 
             long ttft = System.currentTimeMillis() - startMillis;
-            traceRecordService.finishRun(traceId, STATUS_SUCCESS, null,
-                    LocalDateTime.now(), ttft);
-            // 用 finishRun 的 durationMs 字段暂存 TTFT
-            // 之后最终结束时会再覆盖一次
+            traceRecordService.updateRunTtft(traceId, ttft);
             log.info("TTFT: traceId={}, ttftMs={}", traceId, ttft);
         }
 

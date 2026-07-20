@@ -12,6 +12,8 @@ import AdminLayout from './pages/admin/AdminLayout'
 import AdminHome from './pages/admin/AdminHome'
 import UploadDoc from './pages/admin/UploadDoc'
 import UserManage from './pages/admin/UserManage'
+import TraceList from './pages/admin/TraceList'
+import TraceDetail from './pages/admin/TraceDetail'
 
 // ---------- 路由守卫 ----------
 function ProtectedRoute({ children }) {
@@ -314,6 +316,8 @@ export default function App() {
                 <Routes>
                   <Route index element={<AdminHome />} />
                   <Route path="upload" element={<UploadDoc />} />
+                  <Route path="traces" element={<TraceList />} />
+                  <Route path="traces/:traceId" element={<TraceDetail />} />
                   <Route path="users" element={<UserManage />} />
                   <Route path="*" element={<Navigate to="/admin" replace />} />
                 </Routes>

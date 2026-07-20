@@ -3,6 +3,7 @@ package com.caobolun.business.rag.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.caobolun.business.rag.dao.entity.TraceNodeDO;
 import com.caobolun.business.rag.dao.entity.TraceRunDO;
+import com.caobolun.business.rag.dto.response.TraceDetailVO;
 import com.caobolun.business.rag.service.TraceRecordService;
 import com.caobolun.framework.convention.Result;
 import com.caobolun.framework.web.Results;
@@ -26,15 +27,21 @@ public class TraceController {
     @GetMapping("/api/v1/traces")
     public Result<IPage<TraceRunDO>> pageTraces(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return Results.success(traceRecordService.pageRuns(page, size));
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String traceId) {
+        return Results.success(traceRecordService.pageRuns(page, size, traceId));
     }
 
     /**
      * 查询链路详情（含所有节点）
      */
     @GetMapping("/api/v1/traces/{traceId}")
-    public Result<List<TraceNodeDO>> traceNodes(@PathVariable String traceId) {
-        return Results.success(traceRecordService.listNodes(traceId));
+    public Result<TraceDetailVO> traceDetail(@PathVariable String traceId) {
+        List<TraceNodeDO> nodes = traceRecordService.listNodes(traceId);
+        TraceRunDO run = traceRecordService.getRunByTraceId(traceId);
+        return Results.success(TraceDetailVO.builder()
+                .run(run)
+                .nodes(nodes)
+                .build());
     }
 }

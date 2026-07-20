@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { Home, Upload, Users, ArrowLeft, ChevronRight } from 'lucide-react'
+import { Home, Upload, Users, Activity, ArrowLeft, ChevronRight } from 'lucide-react'
 
 const navItems = [
   { path: '/admin', label: '首页', icon: Home },
   { path: '/admin/upload', label: '文档上传', icon: Upload },
+  { path: '/admin/traces', label: '链路追踪', icon: Activity },
   { path: '/admin/users', label: '用户管理', icon: Users },
 ]
 
@@ -29,7 +30,9 @@ export default function AdminLayout({ children }) {
       const idx = prev.findIndex(p => p.path === currentPath)
       if (idx !== -1) return prev.slice(0, idx + 1)
       // 新路径追加
-      const label = navItems.find(i => i.path === currentPath)?.label || '未知'
+      const matched = navItems.filter(i => currentPath === i.path || (currentPath.startsWith(i.path + '/')))
+      const navItem = matched.length > 0 ? matched.reduce((a, b) => a.path.length > b.path.length ? a : b) : null
+      const label = navItem?.label || (currentPath.includes('/traces/') ? '链路详情' : '未知')
       return [...prev, { path: currentPath, label }]
     })
   }, [location.pathname])

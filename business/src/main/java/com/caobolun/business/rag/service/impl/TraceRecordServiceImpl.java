@@ -55,10 +55,11 @@ public class TraceRecordServiceImpl implements TraceRecordService {
     }
 
     @Override
-    public IPage<TraceRunDO> pageRuns(int page, int size) {
+    public IPage<TraceRunDO> pageRuns(int page, int size, String traceId) {
         Page<TraceRunDO> pageParam = new Page<>(page, size);
         return runMapper.selectPage(pageParam,
                 Wrappers.lambdaQuery(TraceRunDO.class)
+                        .eq(traceId != null && !traceId.isBlank(), TraceRunDO::getTraceId, traceId)
                         .orderByDesc(TraceRunDO::getStartTime));
     }
 
@@ -68,5 +69,19 @@ public class TraceRecordServiceImpl implements TraceRecordService {
                 Wrappers.lambdaQuery(TraceNodeDO.class)
                         .eq(TraceNodeDO::getTraceId, traceId)
                         .orderByAsc(TraceNodeDO::getStartTime));
+    }
+
+    @Override
+    public TraceRunDO getRunByTraceId(String traceId) {
+        return runMapper.selectOne(
+                Wrappers.lambdaQuery(TraceRunDO.class)
+                        .eq(TraceRunDO::getTraceId, traceId));
+    }
+
+    @Override
+    public void updateRunTtft(String traceId, long ttftMs) {
+        runMapper.update(null, Wrappers.lambdaUpdate(TraceRunDO.class)
+                .eq(TraceRunDO::getTraceId, traceId)
+                .set(TraceRunDO::getTtftMs, ttftMs));
     }
 }

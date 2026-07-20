@@ -22,10 +22,20 @@ public interface TraceRecordService {
     /**
      * 分页查询链路运行记录
      */
-    IPage<TraceRunDO> pageRuns(int page, int size);
+    IPage<TraceRunDO> pageRuns(int page, int size, String traceId);
 
     /**
      * 查询链路的所有节点
      */
     List<TraceNodeDO> listNodes(String traceId);
+
+    /**
+     * 根据 traceId 查询链路运行记录
+     */
+    TraceRunDO getRunByTraceId(String traceId);
+
+    /**
+     * 更新首包耗时（仅设置 ttftMs）
+     */
+    void updateRunTtft(String traceId, long ttftMs);
 }
