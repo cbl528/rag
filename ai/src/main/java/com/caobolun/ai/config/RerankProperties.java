@@ -8,10 +8,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConfigurationProperties(prefix = "rag.rerank")
 public class RerankProperties {
+    /** 重排序开关 */
     private boolean enabled = false;
-    private int candidateTopK = 20;
-    private int finalTopK = 5;
-    private String baseUrl = "";
-    private String apiKey = "";
-    private String model = "";
 }

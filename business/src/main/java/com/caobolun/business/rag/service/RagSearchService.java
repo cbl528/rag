@@ -38,8 +38,8 @@ public class RagSearchService {
     public List<RetrievedChunk> search(String query) {
         boolean rerankEnabled = systemConfigService.getBoolean("rag.rerank.enabled", false);
         int topK = rerankEnabled
-                ? systemConfigService.getInt("rag.rerank.candidate-top-k", 20)
-                : systemConfigService.getInt("rag.rerank.final-top-k", 5);
+                ? systemConfigService.getInt("rag.candidate-top-k", 20)
+                : systemConfigService.getInt("rag.final-top-k", 5);
         return search(query, topK);
     }
 

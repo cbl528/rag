@@ -38,7 +38,7 @@ public class DefaultRerankService implements RerankService {
         }
 
         boolean enabled = systemConfigService.getBoolean("rag.rerank.enabled", false);
-        int finalTopK = Math.max(1, systemConfigService.getInt("rag.rerank.final-top-k", 5));
+        int finalTopK = Math.max(1, systemConfigService.getInt("rag.final-top-k", 5));
 
         if (enabled) {
             // 启用 Rerank — 后续接入真实 Rerank API 时替换此分支

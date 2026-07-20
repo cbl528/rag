@@ -91,7 +91,7 @@ public class OpenAICompatibleClient implements LlmClient {
 
     private Map<String, Object> buildRequestBody(List<ChatMessage> messages, boolean stream) {
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("model", properties.getModel());
+        body.put("model", properties.getChatModel());
         body.put("messages", messages.stream()
                 .map(msg -> {
                     Map<String, String> map = new LinkedHashMap<>();

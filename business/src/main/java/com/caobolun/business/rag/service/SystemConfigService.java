@@ -1,50 +1,34 @@
 package com.caobolun.business.rag.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.caobolun.business.rag.dao.entity.ModelConfigDO;
 import com.caobolun.business.rag.dao.entity.SystemConfigDO;
-import com.caobolun.business.rag.dto.response.SettingsVO;
+
+import java.util.List;
 
 /**
- * 系统配置服务
+ * 系统配置 + 模型配置服务
  * <p>
- * 提供三层能力：
- * 1. 配置聚合 — 合并 static + DB 覆盖，供前端展示
- * 2. DB 配置 CRUD — 管理 t_system_config 条目
- * 3. 运行时读取 — 供其他服务在运行时获取动态配置
+ * 合并管理 t_system_config（系统开关/参数）和 t_model_config（模型连接信息）。
  */
 public interface SystemConfigService {
 
-    // ========== 配置聚合 ==========
+    // ========== 系统配置 ==========
 
     /**
-     * 获取聚合后的全部配置（静态 + DB 覆盖）
-     */
-    SettingsVO getAggregatedSettings();
-
-    // ========== DB 配置 CRUD ==========
-
-    /**
-     * 分页查询 DB 配置条目
+     * 分页查询系统配置
      */
     IPage<SystemConfigDO> pageConfigs(int page, int size);
 
     /**
-     * 创建或更新 DB 配置（key 重复则更新）
+     * 修改系统配置值
+     *
+     * @param enabled 可选，传 null 不更新 enabled
      */
-    void saveConfig(SystemConfigDO config);
+    void updateConfig(Long id, String value, Integer enabled);
 
     /**
-     * 修改配置值
-     */
-    void updateConfig(Long id, String value);
-
-    /**
-     * 切换启用/禁用状态
-     */
-    void toggleConfig(Long id);
-
-    /**
-     * 删除 DB 配置（回退到静态值）
+     * 删除系统配置（回退到静态值）
      */
     void deleteConfig(Long id);
 
@@ -64,4 +48,31 @@ public interface SystemConfigService {
      * 获取整型配置
      */
     int getInt(String key, int defaultValue);
+
+    // ========== 模型配置 CRUD ==========
+
+    /**
+     * 获取全部模型配置
+     */
+    List<ModelConfigDO> listModelConfigs();
+
+    /**
+     * 根据 ID 获取模型配置
+     */
+    ModelConfigDO getModelConfig(Long id);
+
+    /**
+     * 新增模型配置（如果该 type 已存在则抛出异常）
+     */
+    void createModelConfig(ModelConfigDO config);
+
+    /**
+     * 修改模型配置
+     */
+    void updateModelConfig(Long id, ModelConfigDO config);
+
+    /**
+     * 删除模型配置
+     */
+    void deleteModelConfig(Long id);
 }

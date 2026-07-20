@@ -1,6 +1,6 @@
 package com.caobolun.ai.rag.rerank;
 
-import com.caobolun.ai.config.RerankProperties;
+import com.caobolun.ai.config.OpenAIProperties;
 import com.caobolun.ai.rag.model.RetrievedChunk;
 import com.caobolun.framework.exception.ServiceException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 public class HttpRerankClient implements RerankClient {
 
     private final ObjectMapper objectMapper;
-    private final RerankProperties properties;
+    private final OpenAIProperties openAIProperties;
     private final OkHttpClient httpClient = new OkHttpClient().newBuilder()
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
@@ -37,7 +37,7 @@ public class HttpRerankClient implements RerankClient {
         try {
             // 2. 构建请求体
             String json = objectMapper.writeValueAsString(Map.of(
-                    "model", properties.getModel(),
+                    "model", openAIProperties.getRerankModel(),
                     "query", query,
                     "documents", documents,
                     "top_n", topN,
@@ -46,8 +46,8 @@ public class HttpRerankClient implements RerankClient {
 
             // 3. POST 到 {baseUrl}/rerank
             Request request = new Request.Builder()
-                    .url(properties.getBaseUrl() + "/rerank")
-                    .header("Authorization", "Bearer " + properties.getApiKey())
+                    .url(openAIProperties.getBaseUrl() + "/rerank")
+                    .header("Authorization", "Bearer " + openAIProperties.getApiKey())
                     .header("Content-Type", "application/json")
                     .post(RequestBody.create(json, MediaType.parse("application/json")))
                     .build();
