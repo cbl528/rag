@@ -1,0 +1,35 @@
+package com.caobolun.business.service;
+
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.caobolun.business.model.request.UserCreateDTO;
+import com.caobolun.business.model.request.UserPageDTO;
+import com.caobolun.business.model.request.UserUpdateDTO;
+import com.caobolun.business.model.response.UserVO;
+import org.springframework.web.multipart.MultipartFile;
+
+public interface UserService {
+
+    UserVO createUser(UserCreateDTO request);
+
+    UserVO updateUser(Long id, UserUpdateDTO request);
+
+    /**
+     * 用户自己修改个人信息（需要旧密码校验）
+     */
+    UserVO updateSelf(UserUpdateDTO request);
+
+    void deleteUser(Long id);
+
+    Page<UserVO> pageUser(UserPageDTO request);
+
+    UserVO getUserById(Long id);
+
+    /**
+     * 上传头像：优先 MinIO，失败则本地兜底，并更新用户头像字段
+     *
+     * @param file 上传的图片文件
+     * @return 可访问的头像 URL
+     */
+    String uploadAvatar(MultipartFile file);
+
+}
