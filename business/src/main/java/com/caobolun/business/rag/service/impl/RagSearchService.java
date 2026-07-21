@@ -1,4 +1,4 @@
-package com.caobolun.business.rag.service;
+package com.caobolun.business.rag.service.impl;
 
 import com.caobolun.ai.rag.embedding.EmbeddingService;
 import com.caobolun.ai.rag.model.RetrievedChunk;
@@ -6,6 +6,7 @@ import com.caobolun.ai.rag.store.VectorStoreService;
 import com.caobolun.business.rag.dao.entity.KnowledgeChunkDO;
 import com.caobolun.business.rag.dao.mapper.KnowledgeChunkMapper;
 import com.caobolun.business.rag.rerank.RerankService;
+import com.caobolun.business.rag.service.SystemConfigService;
 import com.caobolun.framework.trace.TraceNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

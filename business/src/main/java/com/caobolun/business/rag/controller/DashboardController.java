@@ -1,46 +1,29 @@
 package com.caobolun.business.rag.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.caobolun.business.rag.dao.entity.ChatMessageDO;
-import com.caobolun.business.rag.dao.entity.ChatSessionDO;
-import com.caobolun.business.rag.dao.entity.DocumentDO;
-import com.caobolun.business.rag.dao.entity.KnowledgeChunkDO;
-import com.caobolun.business.rag.dao.entity.TraceRunDO;
-import com.caobolun.business.rag.dao.mapper.*;
 import com.caobolun.business.rag.dto.response.DashboardResponse;
-import com.caobolun.business.user.dao.entity.UserDO;
-import com.caobolun.business.user.dao.mapper.UserMapper;
+import com.caobolun.business.rag.dto.response.DocumentListResponse;
+import com.caobolun.business.rag.dto.response.UploadFileResponse;
+import com.caobolun.business.rag.service.impl.DashboardService;
+import com.caobolun.business.rag.service.impl.UploadFileService;
 import com.caobolun.framework.convention.Result;
+import com.caobolun.framework.exception.ClientException;
 import com.caobolun.framework.web.Results;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
 
 /**
- * 控制台仪表盘
+ * 管理端控制器 — 仪表盘 + 文档管理
  */
 @RestController
 @RequiredArgsConstructor
 public class DashboardController {
 
-    private final UserMapper userMapper;
-    private final DocumentMapper documentMapper;
-    private final ChatSessionMapper chatSessionMapper;
-    private final ChatMessageMapper chatMessageMapper;
-    private final TraceRunMapper traceRunMapper;
-    private final KnowledgeChunkMapper knowledgeChunkMapper;
-    private final DashboardMapper dashboardMapper;
-
-    private static final DateTimeFormatter DAY_FMT = DateTimeFormatter.ofPattern("MM-dd");
+    private final DashboardService dashboardService;
+    private final UploadFileService uploadFileService;
 
     /**
      * 获取仪表盘全量数据
@@ -49,138 +32,52 @@ public class DashboardController {
     public Result<DashboardResponse> dashboard(
             @RequestParam(defaultValue = "14") int trendDays) {
         StpUtil.checkRole("admin");
-
-        int days = Math.min(Math.max(trendDays, 1), 90);
-
-        // ====== 总览 ======
-        long totalUsers = userMapper.selectCount(Wrappers.emptyWrapper());
-        long totalDocuments = documentMapper.selectCount(
-                Wrappers.<DocumentDO>lambdaQuery().eq(DocumentDO::getStatus, "indexed"));
-        long totalSessions = chatSessionMapper.selectCount(Wrappers.emptyWrapper());
-        long totalMessages = chatMessageMapper.selectCount(Wrappers.emptyWrapper());
-        long totalChunks = knowledgeChunkMapper.selectCount(Wrappers.emptyWrapper());
-        long totalTraces = traceRunMapper.selectCount(Wrappers.emptyWrapper());
-
-        LocalDateTime todayStart = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
-        long todaySessions = chatSessionMapper.selectCount(
-                Wrappers.<ChatSessionDO>lambdaQuery().ge(ChatSessionDO::getCreateTime, todayStart));
-        long todayMessages = chatMessageMapper.selectCount(
-                Wrappers.<ChatMessageDO>lambdaQuery().ge(ChatMessageDO::getCreateTime, todayStart));
-
-        DashboardResponse.Overview overview = DashboardResponse.Overview.builder()
-                .totalUsers(totalUsers)
-                .totalDocuments(totalDocuments)
-                .totalSessions(totalSessions)
-                .totalMessages(totalMessages)
-                .todaySessions(todaySessions)
-                .todayMessages(todayMessages)
-                .totalTraces(totalTraces)
-                .totalChunks(totalChunks)
-                .build();
-
-        // ====== 性能 ======
-        List<TraceRunDO> completedRuns = traceRunMapper.selectList(
-                Wrappers.<TraceRunDO>lambdaQuery()
-                        .in(TraceRunDO::getStatus, "SUCCESS", "ERROR")
-                        .isNotNull(TraceRunDO::getDurationMs));
-
-        long totalRuns = completedRuns.size();
-        long successRuns = completedRuns.stream()
-                .filter(r -> "SUCCESS".equalsIgnoreCase(r.getStatus()))
-                .count();
-        long failedRuns = totalRuns - successRuns;
-
-        double avgLatencyMs = completedRuns.stream()
-                .mapToLong(r -> r.getDurationMs() != null ? r.getDurationMs() : 0L)
-                .filter(v -> v > 0)
-                .average()
-                .orElse(0);
-
-        double avgTtftMs = completedRuns.stream()
-                .filter(r -> r.getTtftMs() != null && r.getTtftMs() > 0)
-                .mapToLong(TraceRunDO::getTtftMs)
-                .average()
-                .orElse(0);
-
-        double successRate = totalRuns > 0 ? (double) successRuns / totalRuns * 100 : 0;
-
-        DashboardResponse.Performance performance = DashboardResponse.Performance.builder()
-                .avgLatencyMs(Math.round(avgLatencyMs * 100.0) / 100.0)
-                .avgTtftMs(Math.round(avgTtftMs * 100.0) / 100.0)
-                .successRate(Math.round(successRate * 10.0) / 10.0)
-                .totalRuns(totalRuns)
-                .successRuns(successRuns)
-                .failedRuns(failedRuns)
-                .build();
-
-        // ====== 趋势 ======
-        LocalDateTime since = LocalDateTime.of(LocalDate.now().minusDays(days - 1), LocalTime.MIN);
-
-        List<DashboardResponse.TrendPoint> sessionsRaw = aggregateDaily(
-                dashboardMapper.countSessionsByDay(since), days);
-        List<DashboardResponse.TrendPoint> messagesRaw = aggregateDaily(
-                dashboardMapper.countMessagesByDay(since), days);
-        List<DashboardResponse.TrendPoint> tracesRaw = aggregateDaily(
-                dashboardMapper.countTracesByDay(since), days);
-
-        List<String> dates = new ArrayList<>();
-        List<Long> sessionVals = new ArrayList<>();
-        List<Long> messageVals = new ArrayList<>();
-        List<Long> traceVals = new ArrayList<>();
-        for (int i = 0; i < days; i++) {
-            LocalDate d = LocalDate.now().minusDays(days - 1 - i);
-            String dateStr = d.format(DAY_FMT);
-            dates.add(dateStr);
-            sessionVals.add(findValue(sessionsRaw, dateStr));
-            messageVals.add(findValue(messagesRaw, dateStr));
-            traceVals.add(findValue(tracesRaw, dateStr));
-        }
-
-        DashboardResponse.TrendSeries trends = DashboardResponse.TrendSeries.builder()
-                .dates(dates)
-                .sessions(sessionVals)
-                .messages(messageVals)
-                .traces(traceVals)
-                .build();
-
-        return Results.success(DashboardResponse.builder()
-                .overview(overview)
-                .performance(performance)
-                .trends(trends)
-                .build());
+        return Results.success(dashboardService.getDashboard(trendDays));
     }
 
-    private List<DashboardResponse.TrendPoint> aggregateDaily(
-            List<Map<String, Object>> raw, int days) {
-        Set<String> dateSet = new HashSet<>();
-        List<DashboardResponse.TrendPoint> result = new ArrayList<>();
-        for (Map<String, Object> row : raw) {
-            // MySQL DATE 类型转 LocalDate
-            Object dateObj = row.get("date");
-            LocalDate date;
-            if (dateObj instanceof java.sql.Date) {
-                date = ((java.sql.Date) dateObj).toLocalDate();
-            } else if (dateObj instanceof LocalDate) {
-                date = (LocalDate) dateObj;
-            } else {
-                continue;
-            }
-            String key = date.format(DAY_FMT);
-            dateSet.add(key);
-            long value = row.get("value") != null ? ((Number) row.get("value")).longValue() : 0;
-            result.add(DashboardResponse.TrendPoint.builder()
-                    .date(key)
-                    .value(value)
-                    .build());
+    /**
+     * 上传文档并执行分片索引
+     */
+    @PostMapping("/api/v1/admin/document/upload")
+    public Result<UploadFileResponse> uploadDocument(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "chunkSize", required = false) Integer chunkSize,
+            @RequestParam(value = "overlap", required = false) Integer overlap) {
+        StpUtil.checkRole("admin");
+
+        // 校验文件类型
+        String fileName = file.getOriginalFilename();
+        if (fileName == null || (!fileName.endsWith(".txt") && !fileName.endsWith(".md"))) {
+            throw new ClientException("仅支持 .txt 和 .md 文件");
         }
-        return result;
+
+        return Results.success(uploadFileService.upload(file, chunkSize, overlap));
     }
 
-    private long findValue(List<DashboardResponse.TrendPoint> list, String dateStr) {
-        return list.stream()
-                .filter(p -> p.getDate().equals(dateStr))
-                .mapToLong(DashboardResponse.TrendPoint::getValue)
-                .findFirst()
-                .orElse(0);
+    /**
+     * 获取文档状态
+     */
+    @GetMapping("/api/v1/admin/document/status/{docId}")
+    public Result<UploadFileResponse> getDocumentStatus(@PathVariable String docId) {
+        StpUtil.checkRole("admin");
+        return Results.success(uploadFileService.getDocumentStatus(docId));
+    }
+
+    /**
+     * 获取文档列表（全部文档，按创建时间倒序）
+     */
+    @GetMapping("/api/v1/admin/documents")
+    public Result<List<DocumentListResponse>> listDocuments() {
+        StpUtil.checkRole("admin");
+        return Results.success(uploadFileService.listDocuments());
+    }
+
+    /**
+     * 获取文档详情（含 MinIO 预览 URL）
+     */
+    @GetMapping("/api/v1/admin/document/{docId}")
+    public Result<DocumentListResponse> getDocument(@PathVariable String docId) {
+        StpUtil.checkRole("admin");
+        return Results.success(uploadFileService.getDocument(docId));
     }
 }

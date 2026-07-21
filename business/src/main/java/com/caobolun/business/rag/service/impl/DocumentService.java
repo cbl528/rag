@@ -1,4 +1,4 @@
-package com.caobolun.business.rag.service;
+package com.caobolun.business.rag.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.caobolun.ai.rag.chunk.FixedSizeBoundaryChunker;

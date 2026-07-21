@@ -1,10 +1,14 @@
-package com.caobolun.business.rag.service;
+package com.caobolun.business.rag.service.impl;
 
 import cn.hutool.core.util.IdUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.caobolun.business.rag.dao.entity.DocumentDO;
 import com.caobolun.business.rag.dao.mapper.DocumentMapper;
+import com.caobolun.business.rag.dto.response.DocumentListResponse;
 import com.caobolun.business.rag.dto.response.UploadFileResponse;
 import com.caobolun.business.user.service.MinioService;
+import com.caobolun.framework.exception.ClientException;
 import com.caobolun.framework.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +19,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
@@ -119,5 +124,73 @@ public class UploadFileService {
         if (fileName == null) return "txt";
         int idx = fileName.lastIndexOf('.');
         return idx >= 0 ? fileName.substring(idx + 1).toLowerCase() : "txt";
+    }
+
+    // ========== 文档查询 ==========
+
+    /**
+     * 获取文档状态详情
+     */
+    public UploadFileResponse getDocumentStatus(String docId) {
+        DocumentDO doc = documentMapper.selectOne(
+                new LambdaQueryWrapper<DocumentDO>()
+                        .eq(DocumentDO::getDocId, docId));
+        if (doc == null) {
+            throw new ClientException("文档不存在");
+        }
+        return UploadFileResponse.builder()
+                .docId(doc.getDocId())
+                .fileName(doc.getFileName())
+                .chunkCount(doc.getChunkCount() != null ? doc.getChunkCount() : 0)
+                .status(doc.getStatus())
+                .errorMessage(doc.getErrorMessage())
+                .fileUrl(doc.getFileUrl())
+                .build();
+    }
+
+    /**
+     * 获取文档列表（按创建时间倒序）
+     */
+    public List<DocumentListResponse> listDocuments() {
+        List<DocumentDO> docs = documentMapper.selectList(
+                Wrappers.<DocumentDO>lambdaQuery()
+                        .orderByDesc(DocumentDO::getCreateTime));
+
+        return docs.stream()
+                .map(doc -> DocumentListResponse.builder()
+                        .docId(doc.getDocId())
+                        .fileName(doc.getFileName())
+                        .fileType(doc.getFileType())
+                        .fileSize(doc.getFileSize())
+                        .chunkCount(doc.getChunkCount() != null ? doc.getChunkCount() : 0)
+                        .status(doc.getStatus())
+                        .errorMessage(doc.getErrorMessage())
+                        .fileUrl(doc.getFileUrl())
+                        .createTime(doc.getCreateTime())
+                        .build())
+                .toList();
+    }
+
+    /**
+     * 获取文档详情
+     */
+    public DocumentListResponse getDocument(String docId) {
+        DocumentDO doc = documentMapper.selectOne(
+                new LambdaQueryWrapper<DocumentDO>()
+                        .eq(DocumentDO::getDocId, docId));
+        if (doc == null) {
+            throw new ClientException("文档不存在");
+        }
+        return DocumentListResponse.builder()
+                .docId(doc.getDocId())
+                .fileName(doc.getFileName())
+                .fileType(doc.getFileType())
+                .fileSize(doc.getFileSize())
+                .chunkCount(doc.getChunkCount() != null ? doc.getChunkCount() : 0)
+                .status(doc.getStatus())
+                .errorMessage(doc.getErrorMessage())
+                .fileUrl(doc.getFileUrl())
+                .createTime(doc.getCreateTime())
+                .build();
     }
 }

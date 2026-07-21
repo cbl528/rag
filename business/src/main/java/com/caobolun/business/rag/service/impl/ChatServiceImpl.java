@@ -9,7 +9,6 @@ import com.caobolun.business.rag.intent.IntentType;
 import com.caobolun.business.rag.memory.ConversationMemoryService;
 import com.caobolun.business.rag.rewrite.QueryRewriteService;
 import com.caobolun.business.rag.service.ChatService;
-import com.caobolun.business.rag.service.RagSearchService;
 import com.caobolun.business.rag.trace.StreamTraceRunner;
 import com.caobolun.framework.callback.StreamCallback;
 import com.caobolun.framework.convention.ChatMessage;
