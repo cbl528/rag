@@ -1,6 +1,6 @@
 package com.caobolun.ai.rag.embedding;
 
-import com.caobolun.ai.config.OpenAIProperties;
+import com.caobolun.framework.config.ConfigReader;
 import com.caobolun.framework.exception.ServiceException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,13 +22,30 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class EmbeddingService {
 
-    private final OpenAIProperties openAIProperties;
+    private static final String DEFAULT_BASE_URL = "https://api.siliconflow.cn/v1";
+    private static final String DEFAULT_EMBEDDING_MODEL = "BAAI/bge-large-zh-v1.5";
+
+    private final ConfigReader configReader;
     private final ObjectMapper objectMapper;
 
     private OkHttpClient httpClient = new OkHttpClient().newBuilder()
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
             .build();
+
+    private String getBaseUrl() {
+        String val = configReader.getModelConfig("embedding-model", "baseUrl");
+        return val != null ? val : DEFAULT_BASE_URL;
+    }
+
+    private String getApiKey() {
+        return configReader.getModelConfig("embedding-model", "apiKey");
+    }
+
+    private String getEmbeddingModel() {
+        String val = configReader.getModelConfig("embedding-model", "model");
+        return val != null ? val : DEFAULT_EMBEDDING_MODEL;
+    }
 
     public float[] embed(String text) {
         List<float[]> results = embedBatch(List.of(text));
@@ -40,17 +57,17 @@ public class EmbeddingService {
             return List.of();
         }
         try {
-            String url = openAIProperties.getBaseUrl() + "/embeddings";
+            String url = getBaseUrl() + "/embeddings";
             //构建请求体
             String json = objectMapper.writeValueAsString(
                     Map.of(
-                            "model", openAIProperties.getEmbeddingModel(),
+                            "model", getEmbeddingModel(),
                             "input", text.size() == 1 ? text.get(0) : text
                     )
             );
             Request request = new Request.Builder()
                     .url(url)
-                    .header("Authorization", "Bearer " + openAIProperties.getApiKey())
+                    .header("Authorization", "Bearer " + getApiKey())
                     .header("Content-Type", "application/json")
                     .post(RequestBody.create(json, MediaType.parse("application/json")))
                     .build();

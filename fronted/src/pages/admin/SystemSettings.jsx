@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   Settings, MessageSquare, Layers, ArrowUpDown,
-  X, Loader2, Plus,
+  X, Loader2,
 } from 'lucide-react'
 import { http } from '../../utils/http'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -10,12 +10,12 @@ import ConfirmDialog from '../../components/ConfirmDialog'
 
 const RAG_BOOL_KEYS = ['rag.rerank.enabled', 'rag.trace.enabled']
 
-const RAG_DISPLAY = {
-  'rag.rerank.enabled':      { label: '重排序开关', desc: '开启后对检索结果进行精排' },
-  'rag.candidate-top-k':     { label: '检索结果候选数', desc: '从向量数据库多取的候选段落数' },
-  'rag.final-top-k':         { label: '检索结果保留数', desc: '最终送入大模型的相关段落数' },
-  'rag.sse-timeout-ms':      { label: 'SSE 超时时间(毫秒)', desc: '大模型流式响应的最长等待时间' },
-  'rag.trace.enabled':       { label: '链路追踪开关', desc: '记录每次检索的详细链路信息' },
+const RAG_LABELS = {
+  'rag.rerank.enabled':    '重排序开关',
+  'rag.candidate-top-k':   '检索候选数',
+  'rag.final-top-k':       '最终保留数',
+  'rag.sse-timeout-ms':    'SSE 超时时间',
+  'rag.trace.enabled':     '链路追踪',
 }
 
 const MODEL_DEFS = [
@@ -44,7 +44,7 @@ export default function SystemSettings() {
   const [editOpen, setEditOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  // 模型配置表单弹窗
+  // 模型配置表单弹窗（isNew=true 表示新增模式，false 表示编辑模式）
   const [modelForm, setModelForm] = useState({ open: false, saving: false, modelType: null, isNew: false, fields: {} })
 
   // ===== 数据加载 =====
@@ -53,10 +53,10 @@ export default function SystemSettings() {
     setError(null)
     try {
       const [sysRes, models] = await Promise.all([
-        http.get('/api/v1/admin/system-configs', { query: { page: 1, size: 50 } }),
+        http.get('/api/v1/admin/system-configs'),
         http.get('/api/v1/admin/model-configs'),
       ])
-      setSystemConfigs(sysRes?.records || [])
+      setSystemConfigs(sysRes || [])
       setModelConfigs(models || [])
     } catch (e) {
       setError(e.message || '加载失败')
@@ -77,10 +77,10 @@ export default function SystemSettings() {
   const handleRagBoolToggle = async (item) => {
     const newValue = item.configValue === 'true' ? 'false' : 'true'
     try {
-      await http.put(`/api/v1/admin/system-configs/${item.id}`, {
-        configValue: newValue,
-        enabled: 1,   // 开启动态覆盖
-      })
+      await http.put(
+        `/api/v1/admin/system-configs/by-key?configKey=${encodeURIComponent(item.configKey)}`,
+        { configValue: newValue },
+      )
       await load()
     } catch (e) {
       setError(e.message || '操作失败')
@@ -98,10 +98,10 @@ export default function SystemSettings() {
     if (!editValue.trim() || !editItem) return
     setSaving(true)
     try {
-      await http.put(`/api/v1/admin/system-configs/${editItem.id}`, {
-        configValue: editValue.trim(),
-        enabled: 1,   // 开启动态覆盖
-      })
+      await http.put(
+        `/api/v1/admin/system-configs/by-key?configKey=${encodeURIComponent(editItem.configKey)}`,
+        { configValue: editValue.trim() },
+      )
       setEditOpen(false)
       await load()
     } catch (e) {
@@ -112,14 +112,19 @@ export default function SystemSettings() {
   }
 
   // ===== 模型配置：打开表单弹窗 =====
-  const openModelForm = (modelType) => {
+  const openModelForm = (modelType, isNew = false) => {
     const config = findModelConfig(modelType)
     setModelForm({
       open: true,
       saving: false,
       modelType,
-      isNew: !config,
-      fields: {
+      isNew,
+      fields: isNew ? {
+        baseUrl: '',
+        apiKey: '',
+        modelName: '',
+        enabled: 1,
+      } : {
         baseUrl: config?.baseUrl || '',
         apiKey: config?.apiKey || '',
         modelName: config?.modelName || '',
@@ -134,7 +139,7 @@ export default function SystemSettings() {
 
   // ===== 模型配置：保存 =====
   const handleModelFormSave = async () => {
-    const { fields, isNew, modelType } = modelForm
+    const { fields, modelType, isNew } = modelForm
     const payload = {
       type: modelType,
       modelName: fields.modelName?.trim() || '',
@@ -152,7 +157,7 @@ export default function SystemSettings() {
           await http.put(`/api/v1/admin/model-configs/${config.id}`, payload)
         }
       }
-      setModelForm(prev => ({ ...prev, open: false, saving: false }))
+      setModelForm(prev => ({ ...prev, open: false }))
       await load()
     } catch (e) {
       setError(e.message || '保存失败')
@@ -163,13 +168,9 @@ export default function SystemSettings() {
   // ===== 模型配置：启用/禁用 =====
   const handleModelToggle = async (modelType) => {
     const config = findModelConfig(modelType)
-    if (!config) return
-    const newEnabled = config.enabled === 1 ? 0 : 1
+    if (!config?.id) return
     try {
-      await http.put(`/api/v1/admin/model-configs/${config.id}`, {
-        ...config,
-        enabled: newEnabled,
-      })
+      await http.put(`/api/v1/admin/model-configs/${config.id}/toggle-enabled`)
       await load()
     } catch (e) {
       setError(e.message || '操作失败')
@@ -221,7 +222,6 @@ export default function SystemSettings() {
               {ragConfigs.map((item) => {
                 const isBool = RAG_BOOL_KEYS.includes(item.configKey)
                 const enabled = item.configValue === 'true'
-                const display = RAG_DISPLAY[item.configKey] || {}
 
                 return (
                   <div key={item.id || item.configKey} className="px-4 py-3">
@@ -229,7 +229,7 @@ export default function SystemSettings() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
-                            {display.label || item.configKey}
+                            {RAG_LABELS[item.configKey] || item.configKey}
                           </span>
                           {isBool && (
                             <span className={`text-[11px] px-1.5 py-0.5 rounded-full border ${
@@ -240,16 +240,10 @@ export default function SystemSettings() {
                               {enabled ? '已开启' : '已关闭'}
                             </span>
                           )}
-                          {item.enabled === 1 && (
-                            <span className="text-[11px] px-1.5 py-0.5 rounded-full border
-                              bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-200 dark:border-blue-800">
-                              动态覆盖
-                            </span>
-                          )}
                         </div>
-                        {display.desc && (
+                        {item.description && (
                           <p className="text-[12px] text-gray-400 dark:text-gray-500 leading-relaxed mt-1">
-                            {display.desc}
+                            {item.description}
                           </p>
                         )}
                       </div>
@@ -335,19 +329,19 @@ export default function SystemSettings() {
                         </div>
                       </div>
                       <button
-                        onClick={() => openModelForm(def.type)}
+                        onClick={() => openModelForm(def.type, true)}
                         className="shrink-0 text-[12px] px-3 py-1.5 rounded-lg font-medium
-                                   text-blue-600 dark:text-blue-400
-                                   bg-blue-50 dark:bg-blue-900/20
-                                   hover:bg-blue-100 dark:hover:bg-blue-900/40
+                                   text-emerald-600 dark:text-emerald-400
+                                   bg-emerald-50 dark:bg-emerald-900/20
+                                   hover:bg-emerald-100 dark:hover:bg-emerald-900/40
                                    active:scale-[0.97] transition-all duration-150"
                       >
-                        {exists ? '编辑' : '+ 新增'}
+                        + 新增
                       </button>
                     </div>
                   </div>
 
-                  {/* ---- 模型名 + 操作按钮 ---- */}
+                  {/* ---- 模型名 + 启用开关 + 新增按钮 ---- */}
                   <div className="mx-5 mb-5">
                     <div className="flex items-center justify-between px-4 py-3 rounded-xl
                                     bg-[#f5f5f7] dark:bg-[#222]
@@ -372,11 +366,11 @@ export default function SystemSettings() {
                           </button>
                         )}
                         <button
-                          onClick={() => openModelForm(def.type)}
+                          onClick={() => openModelForm(def.type, false)}
                           className="text-[12px] px-2.5 py-1.5 rounded-lg font-medium
-                                     text-gray-600 dark:text-gray-300
-                                     bg-gray-100 dark:bg-[#2c2c2e]
-                                     hover:bg-gray-200 dark:hover:bg-[#333]
+                                     text-blue-600 dark:text-blue-400
+                                     bg-blue-50 dark:bg-blue-900/20
+                                     hover:bg-blue-100 dark:hover:bg-blue-900/40
                                      active:scale-[0.97] transition-all duration-150"
                         >
                           编辑

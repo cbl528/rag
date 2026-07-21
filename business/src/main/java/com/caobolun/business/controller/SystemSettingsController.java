@@ -1,7 +1,6 @@
 package com.caobolun.business.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.caobolun.business.model.entity.ModelConfigDO;
 import com.caobolun.business.model.entity.SystemConfigDO;
 import com.caobolun.business.service.SystemConfigService;
@@ -15,44 +14,42 @@ import java.util.List;
 /**
  * 系统设置
  * <p>
- * 系统配置管理 + 模型配置管理
+ * 系统配置管理（非模型类配置）+ 模型配置管理
  */
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/api/v1/admin")
 public class SystemSettingsController {
 
     private final SystemConfigService systemConfigService;
 
-    // ===================== 系统配置 =====================
+    // ===================== 系统配置（其他配置） =====================
 
     /**
-     * 分页查询系统配置
+     * 获取非模型类系统配置列表
      */
-    @GetMapping("/api/v1/admin/system-configs")
-    public Result<IPage<SystemConfigDO>> pageConfigs(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "50") int size) {
+    @GetMapping("/system-configs")
+    public Result<List<SystemConfigDO>> listOtherConfigs() {
         StpUtil.checkRole("admin");
-        return Results.success(systemConfigService.pageConfigs(page, size));
+        return Results.success(systemConfigService.listOtherConfigs());
     }
 
     /**
-     * 修改系统配置值（可同时更新 enabled）
+     * 根据 configKey 获取配置
      */
-    @PutMapping("/api/v1/admin/system-configs/{id}")
-    public Result<Void> updateConfig(@PathVariable Long id, @RequestBody SystemConfigDO body) {
+    @GetMapping("/system-configs/by-key")
+    public Result<SystemConfigDO> getConfigByKey(@RequestParam String configKey) {
         StpUtil.checkRole("admin");
-        systemConfigService.updateConfig(id, body.getConfigValue(), body.getEnabled());
-        return Results.success();
+        return Results.success(systemConfigService.getConfigByKey(configKey));
     }
 
     /**
-     * 删除系统配置（回退到静态值）
+     * 根据 configKey 修改配置值
      */
-    @DeleteMapping("/api/v1/admin/system-configs/{id}")
-    public Result<Void> deleteConfig(@PathVariable Long id) {
+    @PutMapping("/system-configs/by-key")
+    public Result<Void> updateConfigByKey(@RequestParam String configKey, @RequestBody SystemConfigDO body) {
         StpUtil.checkRole("admin");
-        systemConfigService.deleteConfig(id);
+        systemConfigService.updateConfigByKey(configKey, body.getConfigValue(), body.getEnabled());
         return Results.success();
     }
 
@@ -61,7 +58,7 @@ public class SystemSettingsController {
     /**
      * 获取全部模型配置
      */
-    @GetMapping("/api/v1/admin/model-configs")
+    @GetMapping("/model-configs")
     public Result<List<ModelConfigDO>> listModelConfigs() {
         StpUtil.checkRole("admin");
         return Results.success(systemConfigService.listModelConfigs());
@@ -70,7 +67,7 @@ public class SystemSettingsController {
     /**
      * 获取单个模型配置
      */
-    @GetMapping("/api/v1/admin/model-configs/{id}")
+    @GetMapping("/model-configs/{id}")
     public Result<ModelConfigDO> getModelConfig(@PathVariable Long id) {
         StpUtil.checkRole("admin");
         return Results.success(systemConfigService.getModelConfig(id));
@@ -79,7 +76,7 @@ public class SystemSettingsController {
     /**
      * 新增模型配置
      */
-    @PostMapping("/api/v1/admin/model-configs")
+    @PostMapping("/model-configs")
     public Result<Void> createModelConfig(@RequestBody ModelConfigDO config) {
         StpUtil.checkRole("admin");
         systemConfigService.createModelConfig(config);
@@ -89,7 +86,7 @@ public class SystemSettingsController {
     /**
      * 修改模型配置
      */
-    @PutMapping("/api/v1/admin/model-configs/{id}")
+    @PutMapping("/model-configs/{id}")
     public Result<Void> updateModelConfig(@PathVariable Long id, @RequestBody ModelConfigDO config) {
         StpUtil.checkRole("admin");
         systemConfigService.updateModelConfig(id, config);
@@ -97,12 +94,12 @@ public class SystemSettingsController {
     }
 
     /**
-     * 删除模型配置
+     * 切换模型启用/禁用状态
      */
-    @DeleteMapping("/api/v1/admin/model-configs/{id}")
-    public Result<Void> deleteModelConfig(@PathVariable Long id) {
+    @PutMapping("/model-configs/{id}/toggle-enabled")
+    public Result<Void> toggleModelEnabled(@PathVariable Long id) {
         StpUtil.checkRole("admin");
-        systemConfigService.deleteModelConfig(id);
+        systemConfigService.toggleModelEnabled(id);
         return Results.success();
     }
 }

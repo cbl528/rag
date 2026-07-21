@@ -1,6 +1,5 @@
 package com.caobolun.business.service;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.caobolun.business.model.entity.ModelConfigDO;
 import com.caobolun.business.model.entity.SystemConfigDO;
 
@@ -13,24 +12,24 @@ import java.util.List;
  */
 public interface SystemConfigService {
 
-    // ========== 系统配置 ==========
+    // ========== 系统配置（其他配置） ==========
 
     /**
-     * 分页查询系统配置
+     * 获取非模型类系统配置列表（排除 chat-model / embedding-model / rerank-model 分组）
      */
-    IPage<SystemConfigDO> pageConfigs(int page, int size);
+    List<SystemConfigDO> listOtherConfigs();
 
     /**
-     * 修改系统配置值
+     * 根据 configKey 获取配置
+     */
+    SystemConfigDO getConfigByKey(String configKey);
+
+    /**
+     * 根据 configKey 修改配置值
      *
      * @param enabled 可选，传 null 不更新 enabled
      */
-    void updateConfig(Long id, String value, Integer enabled);
-
-    /**
-     * 删除系统配置（回退到静态值）
-     */
-    void deleteConfig(Long id);
+    void updateConfigByKey(String configKey, String value, Integer enabled);
 
     // ========== 运行时读取（供其他服务调用） ==========
 
@@ -72,7 +71,7 @@ public interface SystemConfigService {
     void updateModelConfig(Long id, ModelConfigDO config);
 
     /**
-     * 删除模型配置
+     * 切换模型启用/禁用状态
      */
-    void deleteModelConfig(Long id);
+    void toggleModelEnabled(Long id);
 }

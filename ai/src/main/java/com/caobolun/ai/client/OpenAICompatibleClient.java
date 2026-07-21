@@ -1,7 +1,7 @@
 package com.caobolun.ai.client;
 
-import com.caobolun.ai.config.OpenAIProperties;
 import com.caobolun.framework.callback.StreamCallback;
+import com.caobolun.framework.config.ConfigReader;
 import com.caobolun.framework.convention.ChatMessage;
 import com.caobolun.framework.trace.TraceNode;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -26,9 +26,26 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OpenAICompatibleClient implements LlmClient {
 
+    private static final String DEFAULT_BASE_URL = "https://api.siliconflow.cn/v1";
+    private static final String DEFAULT_CHAT_MODEL = "Qwen/Qwen3-8B";
+
     private final OkHttpClient okHttpClient;
-    private final OpenAIProperties properties;
+    private final ConfigReader configReader;
     private final ObjectMapper objectMapper;
+
+    private String getBaseUrl() {
+        String val = configReader.getModelConfig("chat-model", "baseUrl");
+        return val != null ? val : DEFAULT_BASE_URL;
+    }
+
+    private String getApiKey() {
+        return configReader.getModelConfig("chat-model", "apiKey");
+    }
+
+    private String getChatModel() {
+        String val = configReader.getModelConfig("chat-model", "model");
+        return val != null ? val : DEFAULT_CHAT_MODEL;
+    }
 
     @Override
     @TraceNode(name = "llm-stream", type = "LLM")
@@ -61,8 +78,8 @@ public class OpenAICompatibleClient implements LlmClient {
         String json = objectMapper.writeValueAsString(body);
 
         Request request = new Request.Builder()
-                .url(properties.getBaseUrl() + "/chat/completions")
-                .addHeader("Authorization", "Bearer " + properties.getApiKey())
+                .url(getBaseUrl() + "/chat/completions")
+                .addHeader("Authorization", "Bearer " + getApiKey())
                 .post(RequestBody.create(json, MediaType.get("application/json")))
                 .build();
 
@@ -91,7 +108,7 @@ public class OpenAICompatibleClient implements LlmClient {
 
     private Map<String, Object> buildRequestBody(List<ChatMessage> messages, boolean stream) {
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("model", properties.getChatModel());
+        body.put("model", getChatModel());
         body.put("messages", messages.stream()
                 .map(msg -> {
                     Map<String, String> map = new LinkedHashMap<>();
@@ -119,8 +136,8 @@ public class OpenAICompatibleClient implements LlmClient {
 
         // 发送请求
         Request request = new Request.Builder()
-                .url(properties.getBaseUrl() + "/chat/completions")
-                .addHeader("Authorization", "Bearer " + properties.getApiKey())
+                .url(getBaseUrl() + "/chat/completions")
+                .addHeader("Authorization", "Bearer " + getApiKey())
                 .post(RequestBody.create(json, MediaType.get("application/json")))
                 .build();
 
