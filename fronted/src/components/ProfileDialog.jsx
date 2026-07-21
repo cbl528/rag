@@ -8,14 +8,12 @@ export default function ProfileDialog({ open, onClose }) {
   const { user, refreshUser, logout } = useAuth()
   const navigate = useNavigate()
 
-  // —— 昵称编辑 ——
   const [nickname, setNickname] = useState('')
   const [savingNickname, setSavingNickname] = useState(false)
   const [nicknameMessage, setNicknameMessage] = useState(null)
   const [editingNickname, setEditingNickname] = useState(false)
   const nicknameInputRef = useRef(null)
 
-  // —— 修改密码 ——
   const [oldPassword, setOldPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -25,16 +23,13 @@ export default function ProfileDialog({ open, onClose }) {
   const [changingPassword, setChangingPassword] = useState(false)
   const [passwordMessage, setPasswordMessage] = useState(null)
 
-  // —— 头像上传 ——
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState(null)
   const [avatarMessage, setAvatarMessage] = useState(null)
   const fileInputRef = useRef(null)
 
-  // —— 切换账户 ——
   const [switching, setSwitching] = useState(false)
 
-  // 初始化昵称
   useEffect(() => {
     if (open && user) {
       setNickname(user.nickname || '')
@@ -47,144 +42,79 @@ export default function ProfileDialog({ open, onClose }) {
     }
   }, [open, user])
 
-  // 打开弹窗时从服务端拉取最新用户信息
-  useEffect(() => {
-    if (open) {
-      refreshUser()
-    }
-  }, [open, refreshUser])
+  useEffect(() => { if (open) refreshUser() }, [open, refreshUser])
 
-  // 编辑昵称自动聚焦
   useEffect(() => {
-    if (editingNickname && nicknameInputRef.current) {
-      nicknameInputRef.current.focus()
-    }
+    if (editingNickname && nicknameInputRef.current) nicknameInputRef.current.focus()
   }, [editingNickname])
 
-  // ESC 关闭
   useEffect(() => {
     if (!open) return
-    const handleKey = (e) => {
-      if (e.key === 'Escape') onClose?.()
-    }
+    const handleKey = (e) => { if (e.key === 'Escape') onClose?.() }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [open, onClose])
 
-  // —— 保存昵称 ——
   const handleSaveNickname = async () => {
     const trimmed = nickname.trim()
-    if (!trimmed) {
-      setNicknameMessage({ type: 'error', text: '昵称不能为空' })
-      return
-    }
-    if (trimmed === (user?.nickname || '')) {
-      setEditingNickname(false)
-      return
-    }
-    setSavingNickname(true)
-    setNicknameMessage(null)
+    if (!trimmed) { setNicknameMessage({ type: 'error', text: '昵称不能为空' }); return }
+    if (trimmed === (user?.nickname || '')) { setEditingNickname(false); return }
+    setSavingNickname(true); setNicknameMessage(null)
     try {
       await http.put('/api/v1/users/profile', { nickname: trimmed })
       await refreshUser()
       setNicknameMessage({ type: 'success', text: '昵称已更新' })
       setEditingNickname(false)
-    } catch (e) {
-      setNicknameMessage({ type: 'error', text: e.message || '保存失败' })
-    } finally {
-      setSavingNickname(false)
-    }
+    } catch (e) { setNicknameMessage({ type: 'error', text: e.message || '保存失败' }) }
+    finally { setSavingNickname(false) }
   }
 
-  // —— 修改密码 ——
   const handleChangePassword = async () => {
-    if (!oldPassword) {
-      setPasswordMessage({ type: 'error', text: '请输入当前密码' })
-      return
-    }
-    if (!newPassword) {
-      setPasswordMessage({ type: 'error', text: '请输入新密码' })
-      return
-    }
-    if (newPassword.length < 6) {
-      setPasswordMessage({ type: 'error', text: '新密码至少 6 位' })
-      return
-    }
-    if (newPassword !== confirmPassword) {
-      setPasswordMessage({ type: 'error', text: '两次输入的新密码不一致' })
-      return
-    }
-    setChangingPassword(true)
-    setPasswordMessage(null)
+    if (!oldPassword) { setPasswordMessage({ type: 'error', text: '请输入当前密码' }); return }
+    if (!newPassword) { setPasswordMessage({ type: 'error', text: '请输入新密码' }); return }
+    if (newPassword.length < 6) { setPasswordMessage({ type: 'error', text: '新密码至少 6 位' }); return }
+    if (newPassword !== confirmPassword) { setPasswordMessage({ type: 'error', text: '两次输入的新密码不一致' }); return }
+    setChangingPassword(true); setPasswordMessage(null)
     try {
       await http.put('/api/v1/users/profile', { oldPassword, password: newPassword })
       setPasswordMessage({ type: 'success', text: '密码修改成功' })
-      setOldPassword('')
-      setNewPassword('')
-      setConfirmPassword('')
-    } catch (e) {
-      setPasswordMessage({ type: 'error', text: e.message || '修改失败' })
-    } finally {
-      setChangingPassword(false)
-    }
+      setOldPassword(''); setNewPassword(''); setConfirmPassword('')
+    } catch (e) { setPasswordMessage({ type: 'error', text: e.message || '修改失败' }) }
+    finally { setChangingPassword(false) }
   }
 
-  // —— 切换账户 ——
   const handleSwitchAccount = async () => {
     setSwitching(true)
-    try {
-      await logout()
-    } catch {
-      // ignore
-    }
+    try { await logout() } catch {}
     navigate('/login', { replace: true })
   }
 
-  // —— 头像上传 ——
   const handleAvatarChange = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-
-    // 本地预览
     const reader = new FileReader()
-    reader.onload = (event) => {
-      setAvatarPreview(event.target.result)
-    }
+    reader.onload = (event) => setAvatarPreview(event.target.result)
     reader.readAsDataURL(file)
-
-    // 上传到服务端
-    setUploadingAvatar(true)
-    setAvatarMessage(null)
+    setUploadingAvatar(true); setAvatarMessage(null)
     try {
       const formData = new FormData()
       formData.append('file', file)
       await http.upload('/api/v1/users/avatar', formData)
       await refreshUser()
-      setAvatarPreview(null) // 清除预览，切换到服务端图片
+      setAvatarPreview(null)
       setAvatarMessage({ type: 'success', text: '头像已更新' })
     } catch (err) {
       setAvatarPreview(null)
       setAvatarMessage({ type: 'error', text: err.message || '上传失败' })
     } finally {
       setUploadingAvatar(false)
-      // 清空 input 以便重复选择同一文件
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
-  // 重置头像状态
-  useEffect(() => {
-    if (open) {
-      setAvatarPreview(null)
-      setAvatarMessage(null)
-    }
-  }, [open])
+  useEffect(() => { if (open) { setAvatarPreview(null); setAvatarMessage(null) } }, [open])
 
-  // —— 获取头像首字母 ——
-  const getInitial = () => {
-    const name = user?.username || 'U'
-    return name.charAt(0).toUpperCase()
-  }
+  const getInitial = () => (user?.username || 'U').charAt(0).toUpperCase()
 
   const overlayRef = useRef(null)
 
@@ -194,37 +124,30 @@ export default function ProfileDialog({ open, onClose }) {
     <div
       ref={overlayRef}
       className="fixed inset-0 z-50 flex items-center justify-center"
-      onClick={(e) => {
-        if (e.target === overlayRef.current) onClose?.()
-      }}
+      onClick={(e) => { if (e.target === overlayRef.current) onClose?.() }}
     >
-      {/* 背景遮罩 */}
-      <div className="absolute inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-md" />
 
-      {/* 弹窗卡片 */}
       <div
-        className="relative w-[440px] max-w-[92vw] max-h-[85vh] overflow-y-auto rounded-2xl
+        className="relative w-[460px] max-w-[92vw] max-h-[85vh] overflow-y-auto rounded-2xl
           bg-white dark:bg-[#1c1c1e]
-          shadow-[0_8px_40px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.4)]
+          shadow-[0_16px_48px_rgba(0,0,0,0.2)] dark:shadow-[0_16px_48px_rgba(0,0,0,0.6)]
           animate-fade-in-up"
       >
-        {/* 关闭按钮 */}
         <button
-          className="absolute top-4 right-4 z-10 p-1.5 rounded-lg
+          className="absolute top-5 right-5 z-10 p-1.5 rounded-xl
             text-[#aeaeb2] dark:text-[#636366]
             hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7]
             hover:bg-black/5 dark:hover:bg-white/10
             transition-all duration-150"
           onClick={onClose}
         >
-          <X size={18} />
+          <X size={20} />
         </button>
 
         {/* ======== 用户信息头部 ======== */}
-        <div className="flex flex-col items-center pt-10 pb-6 px-6">
-          {/* 头像 */}
-          <div className="relative mb-4 group">
-            {/* 隐藏的文件输入 */}
+        <div className="flex flex-col items-center pt-12 pb-8 px-8">
+          <div className="relative mb-5 group">
             <input
               ref={fileInputRef}
               type="file"
@@ -232,102 +155,63 @@ export default function ProfileDialog({ open, onClose }) {
               className="hidden"
               onChange={handleAvatarChange}
             />
-
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingAvatar}
               className="block focus:outline-none disabled:opacity-60"
             >
               {avatarPreview ? (
-                <img
-                  src={avatarPreview}
-                  alt="avatar preview"
-                  className="w-20 h-20 rounded-full object-cover ring-2 ring-[#e5e5e5] dark:ring-[#333]"
-                />
+                <img src={avatarPreview} alt="" className="w-24 h-24 rounded-full object-cover ring-3 ring-[#e5e5e5] dark:ring-[#333] shadow-md" />
               ) : user?.avatar ? (
-                <img
-                  src={user.avatar}
-                  alt="avatar"
-                  className="w-20 h-20 rounded-full object-cover ring-2 ring-[#e5e5e5] dark:ring-[#333]"
-                />
+                <img src={user.avatar} alt="" className="w-24 h-24 rounded-full object-cover ring-3 ring-[#e5e5e5] dark:ring-[#333] shadow-md" />
               ) : (
-                <div
-                  className="w-20 h-20 rounded-full flex items-center justify-center
-                    bg-gradient-to-br from-[#1d1d1f] to-[#555] dark:from-[#f5f5f7] dark:to-[#999]
-                    ring-2 ring-[#e5e5e5] dark:ring-[#333]"
-                >
-                  <span className="text-[32px] font-semibold text-white dark:text-[#1d1d1f] select-none">
-                    {getInitial()}
-                  </span>
+                <div className="w-24 h-24 rounded-full flex items-center justify-center bg-gradient-to-br from-[#1d1d1f] to-[#555] dark:from-[#f5f5f7] dark:to-[#999] ring-3 ring-[#e5e5e5] dark:ring-[#333] shadow-md">
+                  <span className="text-[36px] font-bold text-white dark:text-[#1d1d1f] select-none">{getInitial()}</span>
                 </div>
               )}
-
-              {/* 悬浮遮罩 */}
               {!uploadingAvatar && (
-                <div
-                  className="absolute inset-0 rounded-full flex items-center justify-center
-                    bg-black/40 opacity-0 group-hover:opacity-100
-                    transition-opacity duration-200 cursor-pointer"
-                >
-                  <Camera size={22} className="text-white" />
+                <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer">
+                  <Camera size={24} className="text-white" />
                 </div>
               )}
             </button>
-
-            {/* 上传中 spinner */}
             {uploadingAvatar && (
-              <div
-                className="absolute inset-0 rounded-full flex items-center justify-center
-                  bg-black/40"
-              >
-                <Loader2 size={22} className="text-white animate-spin" />
+              <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/40">
+                <Loader2 size={24} className="text-white animate-spin" />
               </div>
             )}
           </div>
 
-          {/* 头像上传反馈 */}
           {avatarMessage && (
-            <p className={`text-[12px] mb-2 ${
-              avatarMessage.type === 'success'
-                ? 'text-green-600 dark:text-green-400'
-                : 'text-red-500 dark:text-red-400'
+            <p className={`text-[13px] mb-3 font-medium ${
+              avatarMessage.type === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'
             }`}>
               {avatarMessage.text}
             </p>
           )}
 
-          {/* 用户名 */}
-          <h2 className="text-[17px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+          <h2 className="text-[20px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7]">
             {user?.username || '用户'}
           </h2>
-
-          {/* 昵称 */}
           {user?.nickname && user.nickname !== user?.username && (
-            <p className="text-[13px] text-[#86868b] dark:text-[#98989d] mt-0.5">
-              {user.nickname}
-            </p>
+            <p className="text-[14px] text-[#86868b] dark:text-[#98989d] mt-1">{user.nickname}</p>
           )}
         </div>
 
-        {/* ======== 内容区 ======== */}
-        <div className="px-6 pb-6 space-y-6">
-
-          {/* 分隔线 */}
+        <div className="px-8 pb-8 space-y-6">
           <div className="border-t border-[#e5e5e5] dark:border-[#333]" />
 
           {/* ====== 昵称修改 ====== */}
           <section>
             <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <PencilLine size={15} className="text-[#86868b] dark:text-[#98989d]" />
-                <h3 className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
-                  昵称
-                </h3>
+              <div className="flex items-center gap-2.5">
+                <PencilLine size={16} className="text-[#86868b] dark:text-[#98989d]" />
+                <h3 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">昵称</h3>
               </div>
               {!editingNickname && (
                 <button
                   onClick={() => setEditingNickname(true)}
-                  className="text-[12px] font-medium text-[#0071E3] hover:text-[#0066CC] dark:text-[#40A9FF] transition-colors"
+                  className="text-[13px] font-medium text-[#0071E3] hover:text-[#0066CC] dark:text-[#40A9FF] transition-colors"
                 >
                   编辑
                 </button>
@@ -335,27 +219,20 @@ export default function ProfileDialog({ open, onClose }) {
             </div>
 
             {editingNickname ? (
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 <input
                   ref={nicknameInputRef}
                   type="text"
                   value={nickname}
-                  onChange={(e) => {
-                    setNickname(e.target.value)
-                    setNicknameMessage(null)
-                  }}
+                  onChange={(e) => { setNickname(e.target.value); setNicknameMessage(null) }}
                   placeholder="输入昵称"
                   maxLength={30}
                   disabled={savingNickname}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSaveNickname()
-                    if (e.key === 'Escape') {
-                      setEditingNickname(false)
-                      setNickname(user?.nickname || '')
-                      setNicknameMessage(null)
-                    }
+                    if (e.key === 'Escape') { setEditingNickname(false); setNickname(user?.nickname || ''); setNicknameMessage(null) }
                   }}
-                  className="w-full px-3.5 py-2.5 text-[14px] rounded-xl
+                  className="w-full px-4 py-3 text-[15px] rounded-xl
                     bg-[#f4f4f4] dark:bg-[#2a2a2a]
                     text-[#1d1d1f] dark:text-[#f5f5f7]
                     placeholder:text-[#aeaeb2] dark:placeholder:text-[#636366]
@@ -364,75 +241,50 @@ export default function ProfileDialog({ open, onClose }) {
                     disabled:opacity-50"
                 />
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-[#aeaeb2] dark:text-[#636366]">
-                    {nickname.length}/30
-                  </span>
+                  <span className="text-[12px] text-[#aeaeb2] dark:text-[#636366]">{nickname.length}/30</span>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => {
-                        setEditingNickname(false)
-                        setNickname(user?.nickname || '')
-                        setNicknameMessage(null)
-                      }}
+                      onClick={() => { setEditingNickname(false); setNickname(user?.nickname || ''); setNicknameMessage(null) }}
                       disabled={savingNickname}
-                      className="px-3 py-1.5 text-[12px] font-medium rounded-lg
-                        text-[#86868b] dark:text-[#98989d]
-                        hover:bg-[#f4f4f4] dark:hover:bg-[#2a2a2a]
-                        transition-colors duration-150"
+                      className="px-4 py-1.5 text-[13px] font-medium rounded-xl text-[#86868b] dark:text-[#98989d] hover:bg-[#f4f4f4] dark:hover:bg-[#2a2a2a] transition-colors duration-150"
                     >
                       取消
                     </button>
                     <button
                       onClick={handleSaveNickname}
                       disabled={savingNickname}
-                      className="px-3 py-1.5 text-[12px] font-medium rounded-lg
-                        bg-[#1d1d1f] dark:bg-white
-                        text-white dark:text-[#1d1d1f]
-                        hover:opacity-85 transition-all duration-150
-                        disabled:opacity-50 disabled:cursor-not-allowed
-                        flex items-center gap-1"
+                      className="px-4 py-1.5 text-[13px] font-medium rounded-xl bg-[#1d1d1f] dark:bg-white text-white dark:text-[#1d1d1f] hover:opacity-85 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-sm"
                     >
-                      {savingNickname ? (
-                        <Loader2 size={13} className="animate-spin" />
-                      ) : (
-                        <Check size={13} />
-                      )}
+                      {savingNickname ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                       保存
                     </button>
                   </div>
                 </div>
-                {/* 昵称操作反馈 */}
                 {nicknameMessage && (
-                  <p className={`text-[12px] ${
-                    nicknameMessage.type === 'success'
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-red-500 dark:text-red-400'
+                  <p className={`text-[13px] font-medium ${
+                    nicknameMessage.type === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'
                   }`}>
                     {nicknameMessage.text}
                   </p>
                 )}
               </div>
             ) : (
-              <p className="text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] pl-0.5">
+              <p className="text-[15px] text-[#1d1d1f] dark:text-[#f5f5f7] pl-0.5">
                 {user?.nickname || <span className="text-[#aeaeb2] dark:text-[#636366]">未设置</span>}
               </p>
             )}
           </section>
 
-          {/* 分隔线 */}
           <div className="border-t border-[#e5e5e5] dark:border-[#333]" />
 
           {/* ====== 修改密码 ====== */}
           <section>
-            <div className="flex items-center gap-2 mb-3">
-              <KeyRound size={15} className="text-[#86868b] dark:text-[#98989d]" />
-              <h3 className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
-                修改密码
-              </h3>
+            <div className="flex items-center gap-2.5 mb-4">
+              <KeyRound size={16} className="text-[#86868b] dark:text-[#98989d]" />
+              <h3 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">修改密码</h3>
             </div>
 
-            <div className="space-y-3">
-              {/* 当前密码 */}
+            <div className="space-y-3.5">
               <div className="relative">
                 <input
                   type={showOldPwd ? 'text' : 'password'}
@@ -440,7 +292,7 @@ export default function ProfileDialog({ open, onClose }) {
                   onChange={(e) => { setOldPassword(e.target.value); setPasswordMessage(null) }}
                   placeholder="当前密码"
                   disabled={changingPassword}
-                  className="w-full px-3.5 py-2.5 text-[14px] rounded-xl pr-10
+                  className="w-full px-4 py-3 text-[15px] rounded-xl pr-11
                     bg-[#f4f4f4] dark:bg-[#2a2a2a]
                     text-[#1d1d1f] dark:text-[#f5f5f7]
                     placeholder:text-[#aeaeb2] dark:placeholder:text-[#636366]
@@ -448,19 +300,11 @@ export default function ProfileDialog({ open, onClose }) {
                     focus:outline-none transition-colors duration-200
                     disabled:opacity-50"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowOldPwd(!showOldPwd)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2
-                    text-[#aeaeb2] dark:text-[#636366]
-                    hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] transition-colors"
-                  tabIndex={-1}
-                >
-                  {showOldPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                <button type="button" onClick={() => setShowOldPwd(!showOldPwd)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#aeaeb2] dark:text-[#636366] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] transition-colors" tabIndex={-1}>
+                  {showOldPwd ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-
-              {/* 新密码 */}
               <div className="relative">
                 <input
                   type={showNewPwd ? 'text' : 'password'}
@@ -468,7 +312,7 @@ export default function ProfileDialog({ open, onClose }) {
                   onChange={(e) => { setNewPassword(e.target.value); setPasswordMessage(null) }}
                   placeholder="新密码（至少 6 位）"
                   disabled={changingPassword}
-                  className="w-full px-3.5 py-2.5 text-[14px] rounded-xl pr-10
+                  className="w-full px-4 py-3 text-[15px] rounded-xl pr-11
                     bg-[#f4f4f4] dark:bg-[#2a2a2a]
                     text-[#1d1d1f] dark:text-[#f5f5f7]
                     placeholder:text-[#aeaeb2] dark:placeholder:text-[#636366]
@@ -476,19 +320,11 @@ export default function ProfileDialog({ open, onClose }) {
                     focus:outline-none transition-colors duration-200
                     disabled:opacity-50"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPwd(!showNewPwd)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2
-                    text-[#aeaeb2] dark:text-[#636366]
-                    hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] transition-colors"
-                  tabIndex={-1}
-                >
-                  {showNewPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                <button type="button" onClick={() => setShowNewPwd(!showNewPwd)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#aeaeb2] dark:text-[#636366] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] transition-colors" tabIndex={-1}>
+                  {showNewPwd ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-
-              {/* 确认新密码 */}
               <div className="relative">
                 <input
                   type={showConfirmPwd ? 'text' : 'password'}
@@ -496,10 +332,8 @@ export default function ProfileDialog({ open, onClose }) {
                   onChange={(e) => { setConfirmPassword(e.target.value); setPasswordMessage(null) }}
                   placeholder="确认新密码"
                   disabled={changingPassword}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleChangePassword()
-                  }}
-                  className="w-full px-3.5 py-2.5 text-[14px] rounded-xl pr-10
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleChangePassword() }}
+                  className="w-full px-4 py-3 text-[15px] rounded-xl pr-11
                     bg-[#f4f4f4] dark:bg-[#2a2a2a]
                     text-[#1d1d1f] dark:text-[#f5f5f7]
                     placeholder:text-[#aeaeb2] dark:placeholder:text-[#636366]
@@ -507,24 +341,15 @@ export default function ProfileDialog({ open, onClose }) {
                     focus:outline-none transition-colors duration-200
                     disabled:opacity-50"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPwd(!showConfirmPwd)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2
-                    text-[#aeaeb2] dark:text-[#636366]
-                    hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] transition-colors"
-                  tabIndex={-1}
-                >
-                  {showConfirmPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                <button type="button" onClick={() => setShowConfirmPwd(!showConfirmPwd)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#aeaeb2] dark:text-[#636366] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] transition-colors" tabIndex={-1}>
+                  {showConfirmPwd ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
 
-              {/* 密码反馈 */}
               {passwordMessage && (
-                <p className={`text-[12px] ${
-                  passwordMessage.type === 'success'
-                    ? 'text-green-600 dark:text-green-400'
-                    : 'text-red-500 dark:text-red-400'
+                <p className={`text-[13px] font-medium ${
+                  passwordMessage.type === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'
                 }`}>
                   {passwordMessage.text}
                 </p>
@@ -533,50 +358,41 @@ export default function ProfileDialog({ open, onClose }) {
               <button
                 onClick={handleChangePassword}
                 disabled={changingPassword}
-                className="w-full py-2.5 rounded-xl text-[13px] font-medium
+                className="w-full py-3 rounded-xl text-[14px] font-semibold
                   bg-[#f4f4f4] dark:bg-[#2a2a2a]
                   text-[#1d1d1f] dark:text-[#f5f5f7]
                   hover:bg-[#e8e8e8] dark:hover:bg-[#333]
-                  transition-all duration-150
+                  transition-all duration-150 shadow-sm
                   disabled:opacity-50 disabled:cursor-not-allowed
                   active:scale-[0.98]
-                  flex items-center justify-center gap-1.5"
+                  flex items-center justify-center gap-2"
               >
-                {changingPassword ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    修改中...
-                  </>
-                ) : (
-                  '更新密码'
-                )}
+                {changingPassword ? <><Loader2 size={15} className="animate-spin" /> 修改中...</> : '更新密码'}
               </button>
             </div>
           </section>
 
-          {/* 分隔线 */}
           <div className="border-t border-[#e5e5e5] dark:border-[#333]" />
 
           {/* ====== 切换账户 ====== */}
           <button
             onClick={handleSwitchAccount}
             disabled={switching}
-            className="w-full py-2.5 rounded-xl text-[13px] font-medium
+            className="w-full py-3 rounded-xl text-[14px] font-semibold
               bg-red-50 dark:bg-red-500/10
               text-red-600 dark:text-red-400
               hover:bg-red-100 dark:hover:bg-red-500/20
               border border-red-100 dark:border-red-500/20
-              transition-all duration-150
+              transition-all duration-150 shadow-sm
               disabled:opacity-50 disabled:cursor-not-allowed
               active:scale-[0.98]
-              flex items-center justify-center gap-2"
+              flex items-center justify-center gap-2.5"
           >
-            <LogOut size={15} />
+            <LogOut size={16} />
             {switching ? '切换中...' : '切换账户'}
           </button>
 
-          {/* 提示文案 */}
-          <p className="text-center text-[11px] text-[#aeaeb2] dark:text-[#636366]">
+          <p className="text-center text-[12px] text-[#aeaeb2] dark:text-[#636366]">
             切换账户将退出当前登录
           </p>
         </div>

@@ -35,31 +35,21 @@ export default function Sidebar({
   const { user, isLoggedIn } = useAuth()
   const navigate = useNavigate()
 
-  // 搜索
   const [searchKeyword, setSearchKeyword] = useState('')
   const [searchResults, setSearchResults] = useState(null)
   const [isSearching, setIsSearching] = useState(false)
   const searchTimerRef = useRef(null)
 
   const doSearch = useCallback(async (keyword) => {
-    if (!keyword.trim()) {
-      setSearchResults(null)
-      return
-    }
+    if (!keyword.trim()) { setSearchResults(null); return }
     setIsSearching(true)
     try {
       const data = await http.get(`/api/v1/conversation/search/${encodeURIComponent(keyword.trim())}`)
       setSearchResults((data || []).map((item) => ({
-        id: item.sessionId,
-        title: item.title,
-        createdAt: item.createTime,
-        lastTime: item.lastTime,
+        id: item.sessionId, title: item.title, createdAt: item.createTime, lastTime: item.lastTime,
       })))
-    } catch {
-      setSearchResults([])
-    } finally {
-      setIsSearching(false)
-    }
+    } catch { setSearchResults([]) }
+    finally { setIsSearching(false) }
   }, [])
 
   const handleSearchChange = (value) => {
@@ -74,14 +64,8 @@ export default function Sidebar({
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
   }
 
-  // 组件卸载时清理定时器
-  useEffect(() => {
-    return () => {
-      if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
-    }
-  }, [])
+  useEffect(() => () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current) }, [])
 
-  // 搜索时显示搜索结果，否则显示传入的会话列表
   const displayConvs = searchResults !== null ? searchResults : conversations
   const groups = useMemo(() => groupByDate(displayConvs), [displayConvs])
 
@@ -90,86 +74,71 @@ export default function Sidebar({
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef = useRef(null)
 
-  // 删除弹窗
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
-  // 点击外部关闭菜单
   useEffect(() => {
     if (!menuOpenId && !userMenuOpen) return
     const handleClick = (e) => {
-      if (menuOpenId && !e.target.closest('[data-menu-id]')) {
-        setMenuOpenId(null)
-      }
-      if (userMenuOpen && userMenuRef.current && !userMenuRef.current.contains(e.target)) {
-        setUserMenuOpen(false)
-      }
+      if (menuOpenId && !e.target.closest('[data-menu-id]')) setMenuOpenId(null)
+      if (userMenuOpen && userMenuRef.current && !userMenuRef.current.contains(e.target)) setUserMenuOpen(false)
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [menuOpenId, userMenuOpen])
 
-  // —— 删除 ——
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return
     setDeleting(true)
     try {
       await http.delete(`/api/v1/conversation/${deleteTarget}`)
       setDeleteTarget(null)
-      // 如果删除的是当前会话，通知父组件刷新列表
       onRefreshConversations?.()
-    } catch (e) {
-      console.error('删除失败', e)
-    } finally {
-      setDeleting(false)
-      setMenuOpenId(null)
-    }
+    } catch (e) { console.error('删除失败', e) }
+    finally { setDeleting(false); setMenuOpenId(null) }
   }
 
-  const openDelete = (convId) => {
-    setDeleteTarget(convId)
-    setMenuOpenId(null)
-  }
+  const openDelete = (convId) => { setDeleteTarget(convId); setMenuOpenId(null) }
 
   const navItemCls = (id) =>
-    `group relative flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all duration-150 text-[13px] ${
+    `group relative flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-150 text-[14px] ${
       currentId === id
-        ? 'bg-gray-200/70 dark:bg-white/10 font-semibold'
-        : 'hover:bg-gray-200/40 dark:hover:bg-white/5 font-normal'
+        ? 'bg-gray-200/60 dark:bg-white/10 font-semibold shadow-sm'
+        : 'hover:bg-gray-200/30 dark:hover:bg-white/5 font-medium'
     }`
 
   const sectionLabelCls =
-    'text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 px-2 mb-1'
+    'text-[12px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 px-3 mb-1.5'
 
   return (
     <aside
       className={`flex flex-col h-full transition-all duration-250 ease-out overflow-hidden shrink-0
-        bg-[#f9f9f9] dark:bg-[#111] ${collapsed ? 'w-0' : 'w-[260px]'}`}
+        bg-[#f9f9f9] dark:bg-[#111] ${collapsed ? 'w-0' : 'w-[280px]'}`}
     >
-      <div className="flex flex-col h-full min-w-[260px]">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 pt-4 pb-1">
-          <span className="text-[13px] font-semibold tracking-tight text-gray-500 dark:text-gray-400 select-none">
+      <div className="flex flex-col h-full min-w-[280px]">
+        {/* ---- Header ---- */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-2">
+          <span className="text-[15px] font-bold tracking-tight text-gray-500 dark:text-gray-400 select-none">
             RAG Studio
           </span>
           <button
-            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+            className="p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
             onClick={onToggleSidebar}
           >
-            <PanelLeft size={16} className="text-gray-400" />
+            <PanelLeft size={18} className="text-gray-400" />
           </button>
         </div>
 
-        {/* 搜索框 */}
-        <div className="px-3 pt-3">
+        {/* ---- 搜索 ---- */}
+        <div className="px-4 pt-4">
           <div className="relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#aeaeb2] dark:text-[#636366] pointer-events-none" />
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#aeaeb2] dark:text-[#636366] pointer-events-none" />
             <input
               type="text"
               value={searchKeyword}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="搜索历史对话..."
-              className="w-full pl-9 pr-8 py-2.5 rounded-xl text-[14px]
+              className="w-full pl-10 pr-9 py-2.5 rounded-xl text-[14px]
                 bg-white dark:bg-[#1c1c1c]
                 text-[var(--color-text-primary)] dark:text-[var(--color-text-primary-dark)]
                 placeholder:text-[#aeaeb2] dark:placeholder:text-[#636366]
@@ -177,37 +146,38 @@ export default function Sidebar({
                 focus:outline-none focus:border-[#1d1d1f] dark:focus:border-[#f5f5f7]
                 transition-colors duration-200"
             />
-            {/* 清除按钮 */}
             {searchKeyword && (
               <button
                 onClick={clearSearch}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded
                   text-[#aeaeb2] dark:text-[#636366]
                   hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7]
                   transition-colors"
               >
-                <X size={14} />
+                <X size={15} />
               </button>
             )}
           </div>
         </div>
 
-        {/* 新对话 */}
-        <div className="px-3 pt-3 pb-2">
+        {/* ---- 新对话 ---- */}
+        <div className="px-4 pt-4 pb-3">
           <button
-            className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[14px]
+            className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-[15px] font-semibold
               bg-white dark:bg-[#1c1c1c] hover:bg-gray-50 dark:hover:bg-[#222]
-              transition-colors duration-150
+              border border-[#e5e5e5] dark:border-[#2a2a2a]
+              shadow-sm hover:shadow-md
+              transition-all duration-150
               text-[var(--color-text-primary)] dark:text-[var(--color-text-primary-dark)]"
             onClick={onNewChat}
           >
-            <Plus size={18} />
+            <Plus size={20} strokeWidth={2.5} />
             <span>新对话</span>
           </button>
         </div>
 
-        {/* 对话列表 */}
-        <div className="flex-1 overflow-y-auto px-3">
+        {/* ---- 对话列表 ---- */}
+        <div className="flex-1 overflow-y-auto px-4">
           {[
             { key: 'today', label: '今天', data: groups.today },
             { key: 'yesterday', label: '昨天', data: groups.yesterday },
@@ -215,7 +185,7 @@ export default function Sidebar({
           ].map(
             (g) =>
               g.data.length > 0 && (
-                <div key={g.key} className="mb-3">
+                <div key={g.key} className="mb-4">
                   <p className={sectionLabelCls}>{g.label}</p>
                   {g.data.map((conv) => (
                     <div
@@ -225,84 +195,66 @@ export default function Sidebar({
                       onMouseEnter={() => setHoveredId(conv.id)}
                       onMouseLeave={() => setHoveredId(null)}
                     >
-                      <MessageCircleMore size={14} className="shrink-0 text-gray-400" />
+                      <MessageCircleMore size={16} strokeWidth={1.5} className="shrink-0 text-gray-400" />
                       <span className="truncate flex-1 text-[var(--color-text-primary)] dark:text-[var(--color-text-primary-dark)]">
                         {conv.title}
                       </span>
 
-                      {/* 三点按钮 — 悬浮或菜单打开时显示 */}
                       {(hoveredId === conv.id || menuOpenId === conv.id) && (
                         <button
                           data-menu-id={conv.id}
-                          className="shrink-0 p-1 rounded-md
+                          className="shrink-0 p-1 rounded-lg
                             text-gray-400 hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7]
                             hover:bg-black/10 dark:hover:bg-white/10
                             transition-all duration-150"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setMenuOpenId(menuOpenId === conv.id ? null : conv.id)
-                          }}
+                          onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === conv.id ? null : conv.id) }}
                         >
-                          <MoreHorizontal size={15} />
+                          <MoreHorizontal size={16} />
                         </button>
                       )}
 
-                      {/* 下拉菜单 — 内嵌在列表项中 */}
                       {menuOpenId === conv.id && (
                         <div
                           data-menu-id={conv.id}
-                          className="fixed z-40 w-[140px] py-1 rounded-xl
+                          className="fixed z-40 w-[150px] py-1.5 rounded-2xl
                             bg-white dark:bg-[#1c1c1e]
-                            shadow-[0_4px_20px_rgba(0,0,0,0.12)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)]
+                            shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]
                             border border-[#e5e5e5] dark:border-[#333]
                             animate-fade-in-up"
                           style={{ top: -9999, left: -9999 }}
                           ref={(el) => {
                             if (!el) return
-                            // 首次渲染时定位到三点按钮下方
                             if (el.style.top === '-9999px') {
                               const btn = document.querySelector(`[data-menu-id="${conv.id}"]`)
                               if (btn) {
                                 const rect = btn.getBoundingClientRect()
-                                const menuW = 140
-                                // 菜单右对齐到按钮
+                                const menuW = 150
                                 let left = rect.right - menuW
-                                // 不超出左侧边界
                                 if (left < 8) left = 8
                                 el.style.left = `${left}px`
-                                el.style.top = `${rect.bottom + 4}px`
+                                el.style.top = `${rect.bottom + 6}px`
                               }
                             }
                           }}
                         >
-                          {/* 重命名 */}
                           <button
-                            className="flex items-center gap-2.5 w-full px-3 py-2 text-[13px]
+                            className="flex items-center gap-3 w-full px-3.5 py-2.5 text-[14px] font-medium
                               text-[#1d1d1f] dark:text-[#f5f5f7]
                               hover:bg-gray-100 dark:hover:bg-white/10
                               transition-colors duration-100"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setMenuOpenId(null)
-                              onOpenRename(conv.id, conv.title)
-                            }}
+                            onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); onOpenRename(conv.id, conv.title) }}
                           >
-                            <PencilLine size={14} className="text-gray-400" />
+                            <PencilLine size={15} className="text-gray-400" />
                             重命名
                           </button>
-
-                          {/* 删除 */}
                           <button
-                            className="flex items-center gap-2.5 w-full px-3 py-2 text-[13px]
+                            className="flex items-center gap-3 w-full px-3.5 py-2.5 text-[14px] font-medium
                               text-red-600 dark:text-red-400
                               hover:bg-red-50 dark:hover:bg-red-500/10
                               transition-colors duration-100"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              openDelete(conv.id)
-                            }}
+                            onClick={(e) => { e.stopPropagation(); openDelete(conv.id) }}
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={15} />
                             删除
                           </button>
                         </div>
@@ -314,70 +266,60 @@ export default function Sidebar({
           )}
         </div>
 
-        {/* 底部 — 登录 / 用户信息 */}
-        <div ref={userMenuRef} className="px-3 pb-3 pt-2 border-t border-[#e5e5e5] dark:border-[#222] relative">
+        {/* ---- 底部用户 ---- */}
+        <div ref={userMenuRef} className="px-4 pb-4 pt-3 border-t border-[#e5e5e5] dark:border-[#222] relative">
           {isLoggedIn ? (
             <>
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center justify-between w-full px-2.5 py-2 rounded-lg
-                  text-[13px] text-gray-500 dark:text-gray-400
+                className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl
+                  text-[14px] text-gray-500 dark:text-gray-400
                   hover:bg-gray-200/40 dark:hover:bg-white/5
                   transition-colors duration-150"
               >
-                <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex items-center gap-3 min-w-0">
                   {user?.avatar ? (
-                    <img src={user.avatar} alt="" className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-[#e5e5e5] dark:ring-[#333]" />
+                    <img src={user.avatar} alt="" className="w-7 h-7 rounded-full object-cover shrink-0 ring-2 ring-[#e5e5e5] dark:ring-[#333]" />
                   ) : (
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#1d1d1f] to-[#555] dark:from-[#f5f5f7] dark:to-[#999] flex items-center justify-center shrink-0">
-                      <span className="text-[10px] font-semibold text-white dark:text-[#1d1d1f]">
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#1d1d1f] to-[#555] dark:from-[#f5f5f7] dark:to-[#999] flex items-center justify-center shrink-0">
+                      <span className="text-[11px] font-semibold text-white dark:text-[#1d1d1f]">
                         {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
                       </span>
                     </div>
                   )}
-                  <span className="truncate text-[var(--color-text-primary)] dark:text-[var(--color-text-primary-dark)]">
+                  <span className="truncate text-[var(--color-text-primary)] dark:text-[var(--color-text-primary-dark)] font-medium">
                     {user?.nickname || user?.username || '用户'}
                   </span>
                 </div>
-                <MoreHorizontal size={14} className="shrink-0 text-gray-400" />
+                <MoreHorizontal size={15} className="shrink-0 text-gray-400" />
               </button>
 
-              {/* 用户下拉菜单 */}
               {userMenuOpen && (
                 <div
-                  className="absolute left-3 right-3 bottom-full mb-1 z-40 py-1 rounded-xl
+                  className="absolute left-4 right-4 bottom-full mb-2 z-40 py-1.5 rounded-2xl
                     bg-white dark:bg-[#1c1c1e]
-                    shadow-[0_4px_20px_rgba(0,0,0,0.12)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)]
+                    shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]
                     border border-[#e5e5e5] dark:border-[#333]
                     animate-fade-in-up"
                 >
-                  {/* 个人中心 */}
                   <button
-                    className="flex items-center gap-2.5 w-full px-3 py-2 text-[13px]
+                    className="flex items-center gap-3 w-full px-3.5 py-2.5 text-[14px] font-medium
                       text-[#1d1d1f] dark:text-[#f5f5f7]
                       hover:bg-gray-100 dark:hover:bg-white/10
                       transition-colors duration-100"
-                    onClick={() => {
-                      setUserMenuOpen(false)
-                      onOpenProfile?.()
-                    }}
+                    onClick={() => { setUserMenuOpen(false); onOpenProfile?.() }}
                   >
-                    <Settings size={14} className="text-gray-400" />
+                    <Settings size={15} className="text-gray-400" />
                     个人中心
                   </button>
-
-                  {/* 退出登录 */}
                   <button
-                    className="flex items-center gap-2.5 w-full px-3 py-2 text-[13px]
+                    className="flex items-center gap-3 w-full px-3.5 py-2.5 text-[14px] font-medium
                       text-red-600 dark:text-red-400
                       hover:bg-red-50 dark:hover:bg-red-500/10
                       transition-colors duration-100"
-                    onClick={() => {
-                      setUserMenuOpen(false)
-                      onLogout()
-                    }}
+                    onClick={() => { setUserMenuOpen(false); onLogout() }}
                   >
-                    <LogOut size={14} />
+                    <LogOut size={15} />
                     退出登录
                   </button>
                 </div>
@@ -385,19 +327,18 @@ export default function Sidebar({
             </>
           ) : (
             <button
-              className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg
+              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl
                 hover:bg-gray-200/40 dark:hover:bg-white/5 transition-colors duration-150
-                text-[13px] text-gray-500 dark:text-gray-400"
+                text-[14px] font-medium text-gray-500 dark:text-gray-400"
               onClick={() => navigate('/login')}
             >
-              <LogIn size={16} />
-              <span>请先进行登录</span>
+              <LogIn size={17} />
+              <span>登录</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* ====== 删除确认弹窗 ====== */}
       <ConfirmDialog
         open={!!deleteTarget}
         title="删除对话"
@@ -408,7 +349,6 @@ export default function Sidebar({
         onConfirm={handleDeleteConfirm}
         onCancel={() => { setDeleteTarget(null); setMenuOpenId(null) }}
       />
-
     </aside>
   )
 }

@@ -3,26 +3,6 @@ import { X } from 'lucide-react'
 
 /**
  * 通用弹窗组件
- *
- * 用法：
- *   <ConfirmDialog
- *     open={showDelete}
- *     title="删除对话"
- *     description="您确定要删除该对话吗，一旦删除无法恢复。"
- *     confirmLabel="删除"
- *     confirmDanger
- *     onConfirm={handleDelete}
- *     onCancel={() => setShowDelete(false)}
- *   />
- *
- *   <ConfirmDialog
- *     open={showRename}
- *     title="重命名对话"
- *     onConfirm={handleRename}
- *     onCancel={() => setShowRename(false)}
- *   >
- *     <input ... />
- *   </ConfirmDialog>
  */
 export default function ConfirmDialog({
   open,
@@ -38,12 +18,9 @@ export default function ConfirmDialog({
 }) {
   const overlayRef = useRef(null)
 
-  // ESC 关闭
   useEffect(() => {
     if (!open) return
-    const handleKey = (e) => {
-      if (e.key === 'Escape') onCancel?.()
-    }
+    const handleKey = (e) => { if (e.key === 'Escape') onCancel?.() }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [open, onCancel])
@@ -54,50 +31,42 @@ export default function ConfirmDialog({
     <div
       ref={overlayRef}
       className="fixed inset-0 z-50 flex items-center justify-center"
-      onClick={(e) => {
-        if (e.target === overlayRef.current) onCancel?.()
-      }}
+      onClick={(e) => { if (e.target === overlayRef.current) onCancel?.() }}
     >
-      {/* 背景遮罩 */}
-      <div className="absolute inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-md" />
 
-      {/* 弹窗卡片 */}
       <div
-        className="relative w-[440px] max-w-[90vw] rounded-2xl
+        className="relative w-[460px] max-w-[90vw] rounded-2xl
           bg-white dark:bg-[#1c1c1e]
-          shadow-[0_8px_40px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.4)]
-          p-7 animate-fade-in-up"
+          shadow-[0_16px_48px_rgba(0,0,0,0.2)] dark:shadow-[0_16px_48px_rgba(0,0,0,0.6)]
+          p-8 animate-fade-in-up"
       >
-        {/* 关闭按钮 */}
         <button
-          className="absolute top-4 right-4 p-1 rounded-lg
+          className="absolute top-5 right-5 p-1.5 rounded-xl
             text-[#aeaeb2] dark:text-[#636366]
             hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7]
             hover:bg-black/5 dark:hover:bg-white/10
             transition-all duration-150"
           onClick={onCancel}
         >
-          <X size={18} />
+          <X size={20} />
         </button>
 
-        {/* 标题 */}
-        <h2 className="text-[17px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-1 pr-6">
+        <h2 className="text-[18px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-1.5 pr-8">
           {title}
         </h2>
 
-        {/* 描述或自定义内容 */}
         {description && (
-          <p className="text-[14px] text-[#86868b] dark:text-[#98989d] leading-relaxed mt-2">
+          <p className="text-[15px] text-[#86868b] dark:text-[#98989d] leading-relaxed mt-3">
             {description}
           </p>
         )}
 
-        {children && <div className="mt-4">{children}</div>}
+        {children && <div className="mt-5">{children}</div>}
 
-        {/* 按钮组 */}
-        <div className="flex items-center justify-end gap-2.5 mt-6">
+        <div className="flex items-center justify-end gap-3 mt-7">
           <button
-            className="py-2 px-5 rounded-xl text-[14px] font-medium
+            className="py-2.5 px-6 rounded-xl text-[15px] font-medium
               bg-[#f4f4f4] dark:bg-[#2a2a2a]
               text-[#1d1d1f] dark:text-[#f5f5f7]
               hover:bg-[#e8e8e8] dark:hover:bg-[#333]
@@ -109,8 +78,8 @@ export default function ConfirmDialog({
             {cancelLabel}
           </button>
           <button
-            className={`py-2 px-5 rounded-xl text-[14px] font-medium
-              transition-all duration-150
+            className={`py-2.5 px-6 rounded-xl text-[15px] font-semibold
+              transition-all duration-150 shadow-sm
               disabled:opacity-50 disabled:cursor-not-allowed
               active:scale-[0.98]
               ${confirmDanger
