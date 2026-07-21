@@ -44,8 +44,8 @@ export default function SystemSettings() {
   const [editOpen, setEditOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  // 模型配置表单弹窗（isNew=true 表示新增模式，false 表示编辑模式）
-  const [modelForm, setModelForm] = useState({ open: false, saving: false, modelType: null, isNew: false, fields: {} })
+  // 模型配置表单弹窗
+  const [modelForm, setModelForm] = useState({ open: false, saving: false, modelType: null, editId: null, fields: {} })
 
   // ===== 数据加载 =====
   const load = useCallback(async () => {
@@ -71,7 +71,7 @@ export default function SystemSettings() {
 
   const ragConfigs = systemConfigs.filter(c => c.configGroup === 'rag')
 
-  const findModelConfig = (type) => modelConfigs.find(m => m.type === type)
+  const getModelsByType = (type) => modelConfigs.filter(m => m.type === type)
 
   // ===== 配置总览：布尔开关 =====
   const handleRagBoolToggle = async (item) => {
@@ -112,23 +112,23 @@ export default function SystemSettings() {
   }
 
   // ===== 模型配置：打开表单弹窗 =====
-  const openModelForm = (modelType, isNew = false) => {
-    const config = findModelConfig(modelType)
+  const openModelForm = (modelType, editId = null) => {
+    const config = editId ? modelConfigs.find(m => m.id === editId) : null
     setModelForm({
       open: true,
       saving: false,
       modelType,
-      isNew,
-      fields: isNew ? {
+      editId,
+      fields: config ? {
+        baseUrl: config.baseUrl || '',
+        apiKey: config.apiKey || '',
+        modelName: config.modelName || '',
+        enabled: config.enabled ?? 1,
+      } : {
         baseUrl: '',
         apiKey: '',
         modelName: '',
         enabled: 1,
-      } : {
-        baseUrl: config?.baseUrl || '',
-        apiKey: config?.apiKey || '',
-        modelName: config?.modelName || '',
-        enabled: config?.enabled ?? 1,
       },
     })
   }
@@ -139,7 +139,7 @@ export default function SystemSettings() {
 
   // ===== 模型配置：保存 =====
   const handleModelFormSave = async () => {
-    const { fields, modelType, isNew } = modelForm
+    const { fields, modelType, editId } = modelForm
     const payload = {
       type: modelType,
       modelName: fields.modelName?.trim() || '',
@@ -149,13 +149,10 @@ export default function SystemSettings() {
     }
     setModelForm(prev => ({ ...prev, saving: true }))
     try {
-      if (isNew) {
-        await http.post('/api/v1/admin/model-configs', payload)
+      if (editId) {
+        await http.put(`/api/v1/admin/model-configs/${editId}`, payload)
       } else {
-        const config = findModelConfig(modelType)
-        if (config?.id) {
-          await http.put(`/api/v1/admin/model-configs/${config.id}`, payload)
-        }
+        await http.post('/api/v1/admin/model-configs', payload)
       }
       setModelForm(prev => ({ ...prev, open: false }))
       await load()
@@ -166,11 +163,10 @@ export default function SystemSettings() {
   }
 
   // ===== 模型配置：启用/禁用 =====
-  const handleModelToggle = async (modelType) => {
-    const config = findModelConfig(modelType)
-    if (!config?.id) return
+  const handleModelToggle = async (modelId) => {
+    if (!modelId) return
     try {
-      await http.put(`/api/v1/admin/model-configs/${config.id}/toggle-enabled`)
+      await http.put(`/api/v1/admin/model-configs/${modelId}/toggle-enabled`)
       await load()
     } catch (e) {
       setError(e.message || '操作失败')
@@ -300,10 +296,8 @@ export default function SystemSettings() {
             {MODEL_DEFS.map((def) => {
               const accent = ACCENT_STYLES[def.accent]
               const Icon = def.icon
-              const config = findModelConfig(def.type)
-              const modelName = config?.modelName || '-'
-              const isEnabled = config?.enabled === 1
-              const exists = !!config
+              const models = getModelsByType(def.type)
+              const enabledCount = models.filter(m => m.enabled === 1).length
 
               return (
                 <div
@@ -329,7 +323,7 @@ export default function SystemSettings() {
                         </div>
                       </div>
                       <button
-                        onClick={() => openModelForm(def.type, true)}
+                        onClick={() => openModelForm(def.type)}
                         className="shrink-0 text-[12px] px-3 py-1.5 rounded-lg font-medium
                                    text-emerald-600 dark:text-emerald-400
                                    bg-emerald-50 dark:bg-emerald-900/20
@@ -341,43 +335,70 @@ export default function SystemSettings() {
                     </div>
                   </div>
 
-                  {/* ---- 模型名 + 启用开关 + 新增按钮 ---- */}
-                  <div className="mx-5 mb-5">
-                    <div className="flex items-center justify-between px-4 py-3 rounded-xl
-                                    bg-[#f5f5f7] dark:bg-[#222]
-                                    border border-[#e5e5e5] dark:border-[#2a2a2a]">
-                      <span className="text-[14px] font-mono font-medium text-[#1d1d1f] dark:text-[#f5f5f7] truncate mr-4">
-                        {modelName}
-                      </span>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {exists && (
-                          <button
-                            type="button"
-                            role="switch"
-                            aria-checked={isEnabled}
-                            onClick={() => handleModelToggle(def.type)}
-                            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full
-                                        transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2
-                                        focus-visible:ring-offset-2 focus-visible:ring-[#1d1d1f] dark:focus-visible:ring-[#f5f5f7]
-                                        ${isEnabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-[#444]'}`}
-                          >
-                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200
-                                            ${isEnabled ? 'translate-x-[22px]' : 'translate-x-[3px]'}`} />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => openModelForm(def.type, false)}
-                          className="text-[12px] px-2.5 py-1.5 rounded-lg font-medium
-                                     text-blue-600 dark:text-blue-400
-                                     bg-blue-50 dark:bg-blue-900/20
-                                     hover:bg-blue-100 dark:hover:bg-blue-900/40
-                                     active:scale-[0.97] transition-all duration-150"
-                        >
-                          编辑
-                        </button>
-                      </div>
+                  {/* ---- 模型列表 ---- */}
+                  {models.length === 0 ? (
+                    <div className="mx-5 mb-5 px-4 py-6 rounded-xl bg-[#f5f5f7] dark:bg-[#222]
+                                    border border-dashed border-[#e5e5e5] dark:border-[#2a2a2a]">
+                      <p className="text-center text-[13px] text-gray-400 dark:text-gray-500">
+                        暂无模型配置，点击"+ 新增"添加
+                      </p>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="mx-5 mb-5 space-y-2">
+                      {models.map((model) => {
+                        const isEnabled = model.enabled === 1
+                        return (
+                          <div key={model.id}
+                               className={`flex items-center justify-between px-4 py-3 rounded-xl
+                                           border transition-colors duration-150
+                                           ${isEnabled
+                                             ? 'bg-[#f5f5f7] dark:bg-[#222] border-[#e5e5e5] dark:border-[#2a2a2a]'
+                                             : 'bg-white dark:bg-[#1c1c1e] border-transparent'}`}
+                          >
+                            <div className="min-w-0 flex-1 mr-3">
+                              <span className="text-[14px] font-mono font-medium text-[#1d1d1f] dark:text-[#f5f5f7] truncate block">
+                                {model.modelName}
+                              </span>
+                              <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5">
+                                {model.baseUrl || '未配置 API 地址'}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isEnabled ? (
+                                <span className="text-[12px] px-2.5 py-1.5 rounded-lg font-medium
+                                                 text-gray-400 dark:text-gray-500
+                                                 bg-gray-100 dark:bg-[#2c2c2e]
+                                                 cursor-not-allowed select-none">
+                                  启用中
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => handleModelToggle(model.id)}
+                                  className="text-[12px] px-2.5 py-1.5 rounded-lg font-medium
+                                             text-blue-600 dark:text-blue-400
+                                             bg-blue-50 dark:bg-blue-900/20
+                                             hover:bg-blue-100 dark:hover:bg-blue-900/40
+                                             active:scale-[0.97] transition-all duration-150"
+                                >
+                                  启用
+                                </button>
+                              )}
+                              <button
+                                onClick={() => openModelForm(def.type, model.id)}
+                                className="text-[12px] px-2 py-1.5 rounded-lg font-medium
+                                           text-blue-600 dark:text-blue-400
+                                           bg-blue-50 dark:bg-blue-900/20
+                                           hover:bg-blue-100 dark:hover:bg-blue-900/40
+                                           active:scale-[0.97] transition-all duration-150"
+                              >
+                                编辑
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -418,7 +439,7 @@ export default function SystemSettings() {
         open={modelForm.open}
         title={(() => {
           const def = MODEL_DEFS.find(m => m.type === modelForm.modelType)
-          return def ? `${modelForm.isNew ? '新增' : '编辑'}${def.label}` : '模型配置'
+          return def ? `${modelForm.editId ? '编辑' : '新增'}${def.label}` : '模型配置'
         })()}
         confirmLabel="保存"
         loading={modelForm.saving}

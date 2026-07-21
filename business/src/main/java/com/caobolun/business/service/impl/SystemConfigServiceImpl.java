@@ -66,30 +66,20 @@ public class SystemConfigServiceImpl implements SystemConfigService {
         }
         configMapper.updateById(update);
 
-        // 同步到 Redis
-        redisConfigService.setConfig(configKey, value);
+        // 删除 Redis 缓存，下次读取时自动回填
+        redisConfigService.deleteConfig(configKey);
     }
 
-    // ===================== 运行时读取（Redis → Environment 兜底） =====================
+    // ===================== 运行时读取（Cache-Aside） =====================
 
     @Override
     public String getConfigValue(String key) {
-        // 1. 优先从 Redis 读取
-        String redisValue = redisConfigService.getConfig(key);
-        if (redisValue != null) {
-            return redisValue;
+        // 1. RedisConfigService 内部按 Cache-Aside 模式：Redis → DB 回填 → 返回
+        String value = redisConfigService.getConfig(key);
+        if (value != null) {
+            return value;
         }
-        // 2. Redis 未命中时，查 DB 是否有启用的覆盖
-        SystemConfigDO dbConfig = configMapper.selectOne(
-                Wrappers.<SystemConfigDO>lambdaQuery()
-                        .eq(SystemConfigDO::getConfigKey, key)
-                        .eq(SystemConfigDO::getEnabled, 1));
-        if (dbConfig != null && StrUtil.isNotBlank(dbConfig.getConfigValue())) {
-            // 同步到 Redis
-            redisConfigService.setConfig(key, dbConfig.getConfigValue());
-            return dbConfig.getConfigValue();
-        }
-        // 3. 回退到 Environment（application.yaml 中的静态值）
+        // 2. 兜底：从 application.yaml 获取静态配置
         return env.getProperty(key);
     }
 
@@ -133,17 +123,10 @@ public class SystemConfigServiceImpl implements SystemConfigService {
     @Override
     @Transactional
     public void createModelConfig(ModelConfigDO config) {
-        // 检查 type 是否已存在（每种 type 只允许一条）
-        Long count = modelConfigMapper.selectCount(
-                Wrappers.<ModelConfigDO>lambdaQuery()
-                        .eq(ModelConfigDO::getType, config.getType()));
-        if (count > 0) {
-            throw new ClientException("该模型类型已存在配置，请直接编辑");
-        }
         modelConfigMapper.insert(config);
 
-        // 同步到 Redis
-        redisConfigService.setModelConfig(config);
+        // 删除 Redis 缓存，下次读取时自动回填
+        redisConfigService.deleteModelConfig(config.getType());
     }
 
     @Override
@@ -154,12 +137,10 @@ public class SystemConfigServiceImpl implements SystemConfigService {
             throw new ClientException("模型配置不存在");
         }
         config.setId(id);
-        // 不更新 createTime / updateTime / deleted
         modelConfigMapper.updateById(config);
 
-        // 同步到 Redis（使用 config 中的 type 字段）
-        config.setType(existing.getType());
-        redisConfigService.setModelConfig(config);
+        // 删除 Redis 缓存，下次读取时自动回填
+        redisConfigService.deleteModelConfig(existing.getType());
     }
 
     @Override
@@ -169,13 +150,41 @@ public class SystemConfigServiceImpl implements SystemConfigService {
         if (config == null) {
             throw new ClientException("模型配置不存在");
         }
+
+        String type = config.getType();
+        int newEnabled = config.getEnabled() == 1 ? 0 : 1;
+
+        if (newEnabled == 0) {
+            // 要禁用当前模型 → 检查是否还有同类型的其他已启用模型
+            boolean isChatOrEmbedding = "chat-model".equals(type) || "embedding-model".equals(type);
+            if (isChatOrEmbedding) {
+                Long enabledCount = modelConfigMapper.selectCount(
+                        Wrappers.<ModelConfigDO>lambdaQuery()
+                                .eq(ModelConfigDO::getType, type)
+                                .eq(ModelConfigDO::getEnabled, 1)
+                                .ne(ModelConfigDO::getId, id));
+                if (enabledCount == 0) {
+                    throw new ClientException(String.format("%s 至少需启用一个", "chat-model".equals(type) ? "对话模型" : "向量模型"));
+                }
+            }
+        } else {
+            // 启用当前模型 → 先禁用同类型的其他已启用模型
+            ModelConfigDO disableOthers = new ModelConfigDO();
+            disableOthers.setEnabled(0);
+            modelConfigMapper.update(disableOthers,
+                    Wrappers.<ModelConfigDO>lambdaUpdate()
+                            .eq(ModelConfigDO::getType, type)
+                            .ne(ModelConfigDO::getId, id)
+                            .eq(ModelConfigDO::getEnabled, 1));
+        }
+
+        // 启用/禁用当前模型
         ModelConfigDO update = new ModelConfigDO();
         update.setId(id);
-        update.setEnabled(config.getEnabled() == 1 ? 0 : 1);
+        update.setEnabled(newEnabled);
         modelConfigMapper.updateById(update);
 
-        // 同步到 Redis（更新 enabled 后仍保留模型信息，不因禁用而删除）
-        config.setEnabled(update.getEnabled());
-        redisConfigService.setModelConfig(config);
+        // 删除 Redis 缓存，下次读取时自动回填
+        redisConfigService.deleteModelConfig(type);
     }
 }

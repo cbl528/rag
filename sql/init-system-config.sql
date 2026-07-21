@@ -45,8 +45,9 @@ INSERT INTO t_system_config (config_key, config_value, config_group, description
 
 -- =============================================================
 -- 模型配置表
--- 存储模型连接信息，每种类型只有一个生效配置。
--- 通过 enabled 切换使用哪个模型配置。
+-- 存储模型连接信息，每种类型可以有多个模型（如多个对话模型）。
+-- 通过 enabled 切换使用哪个模型，每种类型同时最多一个启用。
+-- 当前启用的模型配置会被加载到 Redis 供运行时读取。
 -- =============================================================
 
 CREATE TABLE t_model_config (
@@ -55,11 +56,12 @@ CREATE TABLE t_model_config (
     model_name VARCHAR(100) NOT NULL DEFAULT '' COMMENT '模型名，如 Qwen/Qwen3-8B',
     base_url VARCHAR(255) NOT NULL DEFAULT '' COMMENT 'API 地址',
     api_key VARCHAR(255) NOT NULL DEFAULT '' COMMENT 'API 密钥',
-    enabled TINYINT DEFAULT 1 COMMENT '是否启用（每种类型最多一个启用）',
+    enabled TINYINT DEFAULT 1 COMMENT '是否启用（每种类型同时最多一个启用）',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted TINYINT DEFAULT 0,
-    UNIQUE KEY uk_type (type)
+    INDEX idx_type (type),
+    INDEX idx_model_name (model_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='模型配置表';
 
 -- =============================================================
