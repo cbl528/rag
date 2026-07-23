@@ -8,7 +8,13 @@
  *   import { http } from '../utils/http'
  *   const data = await http.get('/api/xxx')
  *   const data = await http.post('/api/xxx', { ... })
+ *
+ * 生产环境 API 通过 VITE_API_BASE_URL 配置（Cloudflare Tunnel 指向后端）
+ * 开发环境默认同一 origin（Vite proxy 到 localhost:8000）
  */
+
+// API 基地址：生产环境通过 .env.production 配置，开发环境留空走 Vite proxy
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
 // 不需要添加 token 的路径前缀
 const TOKEN_WHITE_LIST = ['/api/v1/auth/login', '/api/v1/auth/logout']
@@ -38,6 +44,9 @@ function getToken() {
 async function request(url, options = {}) {
   const { headers = {}, ...rest } = options
 
+  // 拼接 API 基地址（生产环境走 Cloudflare Tunnel → api.caobolun.asia）
+  const fullUrl = API_BASE_URL ? `${API_BASE_URL}${url}` : url
+
   /* ======================== 🔵 请求拦截器 ======================== */
   const needsToken = !TOKEN_WHITE_LIST.some((path) => url.startsWith(path))
   if (needsToken) {
@@ -48,7 +57,7 @@ async function request(url, options = {}) {
   }
   /* ============================================================= */
 
-  const response = await fetch(url, { headers, ...rest })
+  const response = await fetch(fullUrl, { headers, ...rest })
 
   // 非 JSON 响应直接返回原始 response（如 SSE text/event-stream）
   const contentType = response.headers.get('content-type') || ''
@@ -136,7 +145,8 @@ export const http = {
     if (token) {
       query.set('Authorization', token)
     }
-    return `${baseUrl}?${query.toString()}`
+    const fullUrl = API_BASE_URL ? `${API_BASE_URL}${baseUrl}` : baseUrl
+    return `${fullUrl}?${query.toString()}`
   },
 
   /**
